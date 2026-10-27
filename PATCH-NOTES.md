@@ -1,12 +1,12 @@
 # dsh-agent-menu — 本地收编说明
 
-- 版本：**0.4.1**（0.1.0 为 GLM 交付的初版；0.2.0 / 0.3.0 / 0.4.0 本机自行迭代，计划开源到 GitHub `xsllo425/dsh-agent-menu`）
+- 版本：**0.6.0**（0.1.0 为 GLM 交付的初版；0.2.0 – 0.6.0 本机自行迭代，计划开源到 GitHub `xsllo425/dsh-agent-menu`）
 - **来源：不是 npm。0.1.0 由 GLM 在本机生成**；此后同样只在本机迭代，仓库里没有第二份副本。
 - 接入时间：2026-10-11 12:03（0.1.0）／ 下午（0.2.0）／ 晚间（0.3.0）
 - 接入方式：profile `package.json` 里 `"dsh-agent-menu": "link:C:/Users/17416/.dsh/plugins/dsh-agent-menu"` + node_modules junction
 - 备份：`C:\Users\17416\.dsh\profiles\desktop\package.json.bak-agentmenu前-2026101104034`
-- git 仓库：本目录**计划**自带 git（`v0.1.0` 基线 tag + `v0.2.0` + `v0.3.0`），改动前 `git diff` 即可回滚
-- 0.1.0 原版快照：`E:\DSH\am-v010-snapshot`（**建 git 基线时唯一可用的原版来源**）
+- git 仓库：本目录**已建 git**，基线段 commit `6b20ef7`（2026-10-27，0.6.0 现状）+ tag `v0.6.0`。0.1.0 – 0.5.x 的历史没有逐版提交，需要旧版从下面的备份/snapshot 取。改动前 `git status` 应保持干净
+- 0.1.0 原版快照：`E:\DSH\am-v010-snapshot`（仍在，是 0.1.0 的唯一副本；0.2.0 – 0.5.x 无独立快照，靠 `lib/*.bak-*` 回溯）
 
 ## 客户端半帧：修「右键点图片没反应」（2026-10-27，用户报障）
 
@@ -296,7 +296,8 @@ ls "C:/Users/17416/AppData/Roaming/@deepseek-ai/dsh-desktop/logs/" | grep crash 
 
 ## 以后改动这个插件时
 
-本目录**计划**自带 git（`v0.1.0` / `v0.2.0` / `v0.3.0` 三个 tag），
-**改之前先 `git status` 确认干净**。
-没有「升级覆盖」的问题，也没有第二份 npm 副本可回滚——git tag 就是唯一的回滚点。
-建基线时 0.1.0 的原版要从 `E:\DSH\am-v010-snapshot` 还原，不要凭记忆重写。
+本目录已有 git。基线是 2026-10-27 的 commit `6b20ef7` / tag `v0.6.0`（0.6.0 当时现状）。
+**改之前先 `git status` 确认干净，改完提交并把版本号一起 bump。**
+没有「升级覆盖」的问题，也没有第二份 npm 副本可回滚——git 就是回滚点。
+0.6.0 之前的版本没有逐版提交：0.1.0 的原版在 `E:\DSH\am-v010-snapshot`，
+0.2.0 – 0.5.x 只能从 `lib/*.bak-*` 回溯，不要凭记忆重写。
