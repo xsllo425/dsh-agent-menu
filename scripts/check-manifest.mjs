@@ -204,7 +204,7 @@ const covers = (target) =>
     return pattern.test(target);
   });
 
-for (const readme of ["README.md", "README.zh.md"]) {
+for (const readme of ["README.md", "README.en.md"]) {
   const text = readText(readme);
   const stated = text.match(/#\s*(\d+)\s*(?:项，无任何依赖|tests, no dependencies)/);
   check(stated !== null, `${readme} must state the dependency-free test count next to the test command`);
@@ -221,6 +221,19 @@ for (const readme of ["README.md", "README.zh.md"]) {
     check(covers(target), `${readme} shows ${target}, which package.json files[] does not ship`);
   }
 }
+
+// The repository landing page and the npm page both render README.md, so the
+// default entry point must stay Chinese; English lives beside it as README.en.md.
+const readmePrimary = readText("README.md");
+check(
+  /^## 功能$/m.test(readmePrimary) && /简体中文/.test(readmePrimary),
+  "README.md must stay the Chinese entry point (it is what GitHub and npm render)",
+);
+check(
+  /^\*\*English\*\*$/m.test(readText("README.en.md")) || /·\s*\*\*English\*\*/.test(readText("README.en.md")),
+  "README.en.md must be the English page",
+);
+check(!existsSync(join(root, "README.zh.md")), "README.zh.md is retired; the Chinese page is README.md");
 
 if (failures.length > 0) {
   console.error(`manifest check failed (${failures.length}):`);

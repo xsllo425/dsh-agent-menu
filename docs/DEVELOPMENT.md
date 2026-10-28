@@ -1,6 +1,6 @@
 # 开发与排查记录（dsh-agent-menu）
 
-本文记录当前实现及仍然有效的历史约束。用户说明见 [README.zh.md](../README.zh.md)。
+本文记录当前实现及仍然有效的历史约束。用户说明见 [README.md](../README.md)。
 
 ## 组成
 
