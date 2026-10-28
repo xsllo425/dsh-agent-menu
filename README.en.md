@@ -50,7 +50,7 @@ From a local checkout or tarball, use `dsh plugin --profile desktop add <this di
 ## Development checks
 
 ```bash
-node --test tests/*.test.mjs          # 40 tests, no dependencies
+node --test tests/*.test.mjs          # 42 tests, no dependencies
 node scripts/check-manifest.mjs       # manifest, exports, icon, docs
 ```
 

@@ -50,7 +50,7 @@ dsh plugin --profile desktop add github:xsllo425/dsh-agent-menu
 ## 维护与验证
 
 ```bash
-node --test tests/*.test.mjs          # 40 项，无任何依赖
+node --test tests/*.test.mjs          # 42 项，无任何依赖
 node scripts/check-manifest.mjs       # 清单、导出、图标、文档一致性
 ```
 

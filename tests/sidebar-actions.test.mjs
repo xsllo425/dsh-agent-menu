@@ -325,3 +325,42 @@ test('会话菜单第二次打开不叠加兜底项', async () => {
   await tick()
   assert.equal(nativeMenu.querySelectorAll('.dsh-am-workspace-item').length, 1, '删除项仍只有一条')
 })
+
+// ── 反闪烁契约：菜单同步挂载时补丁必须在右键返回前就位；晚挂载靠阶梯重试补上 ──
+function makeSessionMenu() {
+  const menu = element('div', { rect: { left: 180, top: 60, right: 380, bottom: 220 } })
+  menu.setAttribute('role', 'menu')
+  for (const label of ['置顶会话', '重命名', '分叉会话', '归档会话']) {
+    menu.appendChild(element('button', { text: label, attrs: { role: 'menuitem' } }))
+  }
+  const copyId = element('button', { text: '复制 Session ID', attrs: { role: 'menuitem' } })
+  copyId.childNodes.push({ nodeType: 3, nodeValue: '复制 Session ID', textContent: '复制 Session ID' })
+  menu.appendChild(copyId)
+  return menu
+}
+
+test('同步挂载的菜单在右键返回前就已补好（不等下一帧）', () => {
+  const row = element('div', { dataset: { rowKey: 'session:s1' }, rect: { left: 10, top: 50, right: 210, bottom: 80 } })
+  row.appendChild(element('button', {
+    attrs: { 'aria-label': '会话“Demo”的操作' },
+    onClick() { nativeMenu = makeSessionMenu() },
+  }))
+  fireContextMenu({ target: row, preventDefault() {}, stopImmediatePropagation() {}, stopPropagation() {} })
+  const labels = nativeMenu.querySelectorAll('[role="menuitem"]').map((item) => item.textContent)
+  assert.ok(labels.includes('删除会话'), '同步路径：click 返回时删除项已在菜单里')
+  assert.equal(labels[4], '复制会话 ID', '同步路径：汉化同样不等下一帧')
+})
+
+test('菜单晚挂载时阶梯重试补上，不是一帧定生死', async () => {
+  nativeMenu = null // 清掉上一个用例留下的菜单实例，模拟全新打开
+  const row = element('div', { dataset: { rowKey: 'session:s1' }, rect: { left: 10, top: 50, right: 210, bottom: 80 } })
+  row.appendChild(element('button', {
+    attrs: { 'aria-label': '会话“Demo”的操作' },
+    onClick() { setTimeout(() => { nativeMenu = makeSessionMenu() }, 40) },
+  }))
+  fireContextMenu({ target: row, preventDefault() {}, stopImmediatePropagation() {}, stopPropagation() {} })
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  const labels = nativeMenu.querySelectorAll('[role="menuitem"]').map((item) => item.textContent)
+  assert.ok(labels.includes('删除会话'), '重试阶梯在菜单出现后把项补上')
+  assert.equal(nativeMenu.querySelectorAll('.dsh-am-workspace-item').length, 1, '重试不叠加')
+})
