@@ -1,258 +1,103 @@
 /**
- * Pre-install self-check for this bundle.
+ * dsh-agent-menu 发布前自检：node scripts/check-manifest.mjs
  *
- * Verifies what the install and the Plugin Manager will actually read: the
- * manifest and its export map, the patch row, the translatable display
- * metadata, the icon's format/size, the browser artifact's registration id and
- * the host half's exports. It also keeps the docs honest: README's test count
- * and install command, and CHANGELOG's version head against package.json.
- *
- * Run with `node scripts/check-manifest.mjs` from the package root.
- *
- * Differences from dsh-work-status's checker, on purpose:
- *  - This plugin legitimately attaches its own menu root, toast node and a
- *    hidden textarea to document.body, so the "no document.body" assertion
- *    would be false. What actually matters here is narrower and is checked
- *    instead: nothing is rendered through a React portal, and every node the
- *    client adds to body is one it created and can remove again.
- *  - Test declarations are counted as `test(` at the start of a line. The
- *    suites here declare every case explicitly (no test-generating helpers),
- *    so this equals the count `node --test` reports.
+ * 公共部分（清单字段、exports、files[]、patch 行、双语简介、图标、CHANGELOG、README）在
+ * plugin-audit.mjs；这里只写本插件自己的约定：
+ *  - 菜单根节点、提示条和复制用的隐藏 textarea 确实挂在 document.body 上，所以不查"不碰 body"，
+ *    而是查每个挂上去的节点都有拆掉的路径，并且不走 React portal；
+ *  - 三处版本号（清单、宿主、客户端）必须一致；
+ *  - README.md 是中文入口（GitHub 和 npm 都渲染它），英文在 README.en.md；市场徽章分中英文两张。
  */
-import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { openAudit } from "./plugin-audit.mjs";
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const readJson = (relative) => JSON.parse(readFileSync(join(root, relative), "utf8"));
-const readText = (relative) => readFileSync(join(root, relative), "utf8");
+const REPO = "xsllo425/dsh-agent-menu";
+const audit = openAudit(import.meta.url);
+const { pkg, expect, text, exists } = audit;
 
-const manifest = readJson("package.json");
-const failures = [];
-const check = (condition, message) => {
-  if (!condition) failures.push(message);
-};
+audit.packageBasics({
+  name: "dsh-agent-menu",
+  extra: [
+    [pkg.license === "MIT", "license 应为 MIT"],
+    [pkg.icon === "./icon.svg", "icon 应指向 ./icon.svg"],
+    [pkg.author === "xsllo425", "author 应为 xsllo425"],
+    [pkg.repository?.url === `git+https://github.com/${REPO}.git`, "repository.url 应指向本仓库"],
+    [String(pkg.homepage ?? "").includes(REPO), "homepage 应指向本仓库"],
+    [String(pkg.bugs?.url ?? "").includes(REPO), "bugs.url 应指向本仓库"],
+    [pkg.publishConfig?.registry === "https://registry.npmjs.org/" && pkg.publishConfig?.access === "public", "publishConfig 应发到公共 npm 且 access 为 public"],
+    [typeof pkg.scripts?.check === "string" && typeof pkg.scripts?.test === "string", "scripts 里要有 check 和 test"],
+  ],
+});
+audit.exportsResolve();
+audit.filesShip(["icon.svg", "NOTICE", "CHANGELOG.md"]);
+audit.patchRow("agent-menu");
+audit.localeMeta();
+audit.iconOk();
 
-/* ---------------------------------------------------------------- manifest */
+// ── 客户端 ───────────────────────────────────────────────────────────────
+const client = text("lib/client.js");
+expect(client.includes('id: "dsh-agent-menu"'), "client.js 注册的 id 应与包名一致");
+expect(client.includes("__ModuleLoader__.load"), "client.js 应通过 __ModuleLoader__.load 注册");
+expect(/^\s*factory:\s*\(?require\)?\s*=>/m.test(client), "client.js 的 factory 应接收模块加载器给的 require");
 
-check(manifest.name === "dsh-agent-menu", "name must be dsh-agent-menu");
-check(/^\d+\.\d+\.\d+/.test(manifest.version), "version must be semver");
-check(manifest.type === "module", "type must be module");
-check(manifest.license === "MIT", "license must be MIT");
-check(manifest.dsh?.bundle?.patch === "./cordis.patch.yml", "dsh.bundle.patch must point at cordis.patch.yml");
-check(manifest.dsh?.client?.platform === "web", "dsh.client.platform must be web");
-check(Array.isArray(manifest.dsh?.client?.inject), "dsh.client.inject must be an array");
-check(typeof manifest.icon === "string" && manifest.icon === "./icon.svg", "icon must point at ./icon.svg");
-check(manifest.author === "xsllo425", "author must be xsllo425");
-check(
-  manifest.repository?.url === "git+https://github.com/xsllo425/dsh-agent-menu.git",
-  "repository.url must point at the canonical repository",
-);
-check(typeof manifest.homepage === "string" && manifest.homepage.includes("xsllo425/dsh-agent-menu"), "homepage must point at the repository");
-check(typeof manifest.bugs?.url === "string" && manifest.bugs.url.includes("xsllo425/dsh-agent-menu"), "bugs.url must point at the repository");
-check(manifest.publishConfig?.registry === "https://registry.npmjs.org/", "publishConfig.registry must be the public npm registry");
-check(manifest.publishConfig?.access === "public", "publishConfig.access must be public");
-check(typeof manifest.scripts?.check === "string", "scripts.check must exist");
-check(typeof manifest.scripts?.test === "string", "scripts.test must exist");
-
-/* ----------------------------------------------------------------- exports */
-
-for (const [key, target] of Object.entries(manifest.exports ?? {})) {
-  check(typeof target === "string", `export ${key} must map to a single file`);
-  if (typeof target !== "string") continue;
-  if (key.includes("*")) {
-    check(existsSync(join(root, target.replace("*", "en"))), `export ${key} does not resolve`);
-    continue;
-  }
-  check(existsSync(join(root, target)), `export ${key} -> ${target} does not exist`);
+// 只允许经模块加载器拿 react 和 UI 基础组件；宿主的其他包不能直接 require。
+for (const [, spec] of client.matchAll(/require\(\s*["'](@deepseek-ai\/[^"']+)["']\s*\)/g)) {
+  expect(spec === "@deepseek-ai/dsh-client-ui-primitives", `client.js 不能 require ${spec}`);
 }
+expect(!/createPortal\s*\(/.test(client), "client.js 不能用 React portal 画东西");
 
-/* ------------------------------------------------------------------- files */
-
-for (const entry of manifest.files ?? []) {
-  if (entry.startsWith("!")) continue;
-  if (entry.includes("*")) {
-    const directory = dirname(entry);
-    const base = entry.slice(entry.lastIndexOf("/") + 1);
-    const pattern = new RegExp("^" + base.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*") + "$");
-    const present = existsSync(join(root, directory)) && readdirSync(join(root, directory)).some((name) => pattern.test(name));
-    check(present, `files entry ${entry} has no match`);
-    continue;
-  }
-  check(existsSync(join(root, entry)), `files entry ${entry} does not exist`);
-}
-
-for (const required of ["icon.svg", "NOTICE", "CHANGELOG.md"]) {
-  check((manifest.files ?? []).includes(required), `files[] must ship ${required}`);
-}
-
-/* ------------------------------------------------------------------- patch */
-
-const patch = readText("cordis.patch.yml");
-check(patch.includes("- id: agent-menu"), "patch must insert the agent-menu row");
-check(patch.includes("name: dsh-agent-menu"), "patch row must name the package");
-
-/* ----------------------------------------------------------------- locales */
-
-for (const locale of ["en", "zh"]) {
-  const dictionary = readJson(`locale/${locale}.json`);
-  check(typeof dictionary.meta?.title === "string" && dictionary.meta.title.length > 0, `locale/${locale}.json meta.title missing`);
-  check(
-    typeof dictionary.meta?.description === "string" && dictionary.meta.description.length > 20,
-    `locale/${locale}.json meta.description missing`,
-  );
-}
-
-/* -------------------------------------------------------------------- icon */
-
-const iconPath = join(root, "icon.svg");
-check(existsSync(iconPath), "icon.svg is missing");
-if (existsSync(iconPath)) {
-  const icon = readFileSync(iconPath);
-  const size = statSync(iconPath).size;
-  const text = icon.toString("utf8");
-  check(size <= 256 * 1024, `icon is ${size} bytes, over the 256 KiB limit`);
-  check(text.trimStart().startsWith("<svg") || text.includes("<svg"), "icon.svg does not contain an <svg> element");
-  check(!/<image|<script|href="(?:https?:)?\/\//i.test(text), "icon.svg must not embed raster images, scripts or remote URLs");
-}
-
-/* ------------------------------------------------------------------ client */
-
-const client = readText("lib/client.js");
-check(client.includes('id: "dsh-agent-menu"'), "client.js must register the factory under the package name");
-check(client.includes("__ModuleLoader__.load"), "client.js must use the module loader");
-check(/^\s*factory:\s*\(?require\)?\s*=>/m.test(client), "client.js factory must receive the module loader's require");
-check(/CLIENT_VERSION\s*=\s*"\d+\.\d+\.\d+"/.test(client), "client.js must declare CLIENT_VERSION");
-
-// Host packages may not be imported here; only `react` and the UI primitives
-// may come through the module loader (see app.asar's loader documentation).
-const hostRequires = [...client.matchAll(/require\(\s*["'](@deepseek-ai\/[^"']+)["']\s*\)/g)].map((match) => match[1]);
-const allowedRequires = new Set(["@deepseek-ai/dsh-client-ui-primitives"]);
-for (const specifier of hostRequires) {
-  check(allowedRequires.has(specifier), `client.js must not require ${specifier}`);
-}
-
-// No React portals: everything the client draws is a DOM subtree it owns.
-check(!/createPortal\s*\(/.test(client), "client.js must not render through a React portal");
-
-// It does append to document.body (menu root, toast, offscreen textarea), so
-// instead assert that each appended node has a real removal path.
-const bodySites = [...client.matchAll(/document\.body\.appendChild\(\s*([A-Za-z_$][\w$]*)\s*\)/g)].map((match) => match[1]);
-const appended = new Set(bodySites);
-check(appended.size > 0, "client.js is expected to mount its own nodes on document.body");
-const removesDirectly = (variable) =>
-  new RegExp(`${variable}\\.parentNode\\.removeChild\\(`).test(client) ||
-  new RegExp(`removeChild\\(\\s*${variable}\\s*\\)`).test(client) ||
-  new RegExp(`${variable}\\.remove\\(\\)`).test(client);
-const removedByQuery = (variable, idConstant) =>
-  new RegExp(`${variable}\\.id = ${idConstant}`).test(client) &&
-  new RegExp(`querySelectorAll\\(\\s*"#" \\+ ${idConstant}`).test(client) &&
+// 挂到 body 上的每个节点都要能拆掉：直接 remove / removeChild，或（菜单根、提示条）按 id 查出来再删。
+const mounted = new Set([...client.matchAll(/document\.body\.appendChild\(\s*([A-Za-z_$][\w$]*)\s*\)/g)].map((m) => m[1]));
+expect(mounted.size > 0, "client.js 应自己在 document.body 上挂菜单节点");
+const removedDirectly = (name) =>
+  new RegExp(`(?:${name}\\.remove\\(\\)|${name}\\.parentNode\\.removeChild\\(|removeChild\\(\\s*${name}\\s*\\))`).test(client);
+const removedById = (name, idConst) =>
+  new RegExp(`${name}\\.id = ${idConst}`).test(client) &&
+  new RegExp(`querySelectorAll\\(\\s*"#" \\+ ${idConst}`).test(client) &&
   /function closeMenu\(\)/.test(client);
-for (const variable of appended) {
-  const byId = /^node$|^root$/.test(variable);
-  check(
-    removesDirectly(variable) || (byId && (removedByQuery(variable, "MENU_ID") || removedByQuery(variable, "TOAST_ID"))),
-    `client.js appends ${variable} to document.body without a matching removal`,
-  );
+for (const name of mounted) {
+  const ok = removedDirectly(name) || ((name === "root" || name === "node") && (removedById(name, "MENU_ID") || removedById(name, "TOAST_ID")));
+  expect(ok, `client.js 把 ${name} 挂到了 document.body，却找不到拆掉它的地方`);
 }
-check(removedByQuery("root", "MENU_ID"), "closeMenu must remove the menu root by id");
-check(removesDirectly("area"), "the offscreen clipboard textarea must be detached again after copying");
+expect(removedById("root", "MENU_ID"), "closeMenu 应按 id 拆掉菜单根节点");
+expect(removedDirectly("area"), "复制用的隐藏 textarea 用完要拆掉");
 
-check(
-  client.includes("sidebar.workspaces.session.menu.item"),
-  "client.js must target the official session-menu slot",
-);
-check(/slots\.inject\(\s*["']sidebar\.workspaces\.session\.menu\.item["']/.test(client), "client.js must register the session slot via slots.inject");
-check(!/["'](?:发送给 ?AI|引用到输入框|让 ?AI ?解释)/.test(client), "client.js must not reintroduce AI prompt actions");
-check(client.includes('scenario === "file" && path !== ""'), "file actions must require a non-empty path");
+expect(/slots\.inject\(\s*["']sidebar\.workspaces\.session\.menu\.item["']/.test(client), "会话菜单项应通过 slots.inject 注册到官方插槽");
+expect(!/["'](?:发送给 ?AI|引用到输入框|让 ?AI ?解释)/.test(client), "client.js 不应再出现已删掉的 AI 菜单项");
+expect(client.includes('scenario === "file" && path !== ""'), "文件类菜单项必须有非空路径才出现");
 
-/* -------------------------------------------------------------------- host */
+// ── 宿主端 ───────────────────────────────────────────────────────────────
+const host = text("lib/index.js");
+expect(/export function apply\(/.test(host), "lib/index.js 应导出 apply 函数");
+expect(/export const inject = \[[^\]]*["']webServer["']/.test(host), "lib/index.js 应注入 webServer");
+expect(!/export default/.test(host), "lib/index.js 不要混用 export default");
+expect(!/\brequire\(/.test(host), "lib/index.js 只用 ESM import");
 
-const host = readText("lib/index.js");
-check(/export function apply\(/.test(host), "host half must export an apply function");
-check(/export const inject = \[[^\]]*["']webServer["']/.test(host), "host half must inject webServer");
-check(!/export default/.test(host), "host half must not mix export forms");
-check(!/require\(/.test(host), "host half must use ESM imports only");
-check(/export const version = '(\d+\.\d+\.\d+)'/.test(host), "host half must declare its version");
-
-const hostVersion = host.match(/export const version = '(\d+\.\d+\.\d+)'/)[1];
-const clientVersion = client.match(/CLIENT_VERSION\s*=\s*"(\d+\.\d+\.\d+)"/)[1];
-check(hostVersion === manifest.version, `host version ${hostVersion} does not match package version ${manifest.version}`);
-check(clientVersion === manifest.version, `client version ${clientVersion} does not match package version ${manifest.version}`);
-
-/* -------------------------------------------------------------------- docs */
-
-const changelog = readText("CHANGELOG.md");
-const head = (changelog.split("\n").find((line) => line.startsWith("## ")) ?? "").trim();
-if (!head.startsWith("## 未发布")) {
-  const released = head.split(/\s+/)[1];
-  check(released === manifest.version, `CHANGELOG head "${head}" does not match package version ${manifest.version}`);
+// ── 三处版本号 ───────────────────────────────────────────────────────────
+const hostVersion = (/export const version = '([^']+)'/.exec(host) ?? [])[1];
+const hostRoute = (/const HOST_VERSION = '([^']+)'/.exec(host) ?? [])[1];
+const clientVersion = (/CLIENT_VERSION\s*=\s*"([^"]+)"/.exec(client) ?? [])[1];
+for (const [where, value] of [["lib/index.js 的 version", hostVersion], ["lib/index.js 的 HOST_VERSION", hostRoute], ["lib/client.js 的 CLIENT_VERSION", clientVersion]]) {
+  expect(value === pkg.version, `${where} 是 ${value ?? "（没写）"}，package.json 是 ${pkg.version}`);
 }
 
-const declaredTests = readdirSync(join(root, "tests"))
-  .filter((name) => name.endsWith(".test.mjs"))
-  .reduce((sum, name) => sum + (readText(join("tests", name)).match(/^test\(/gm) ?? []).length, 0);
-
-const covers = (target) =>
-  (manifest.files ?? []).some((entry) => {
-    if (entry.startsWith("!")) return false;
-    if (!entry.includes("*")) return entry === target;
-    const pattern = new RegExp(
-      "^" + entry.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*\*\//g, "(?:.*/)?").replace(/\*/g, "[^/]*") + "$",
-    );
-    return pattern.test(target);
-  });
-
+// ── 文档 ─────────────────────────────────────────────────────────────────
+audit.changelogHead();
+const tests = audit.countTests();
+audit.readmesHonest({ files: ["README.md", "README.en.md"], tests, repo: REPO });
 for (const readme of ["README.md", "README.en.md"]) {
-  const text = readText(readme);
-  const stated = text.match(/#\s*(\d+)\s*(?:项，无任何依赖|tests, no dependencies)/);
-  check(stated !== null, `${readme} must state the dependency-free test count next to the test command`);
-  if (stated) check(Number(stated[1]) === declaredTests, `${readme} says ${stated[1]} tests but ${declaredTests} are declared in tests/`);
-  check(
-    text.includes("dsh plugin --profile") && text.includes("github:xsllo425/dsh-agent-menu"),
-    `${readme} lost the install command`,
-  );
-  check(!/node tests\/[a-z-]+\.mjs/.test(text), `${readme} still documents the retired counter-style test scripts`);
-  for (const match of text.matchAll(/!\[[^\]]*\]\(([^)\s]+)\)/g)) {
-    const target = match[1].replace(/^\.\//, "");
-    if (/^(?:https?:|data:|\/)/.test(target)) continue;
-    check(existsSync(join(root, target)), `${readme} shows ${target}, which does not exist`);
-    check(covers(target), `${readme} shows ${target}, which package.json files[] does not ship`);
-  }
+  expect(!/node tests\/[a-z-]+\.mjs/.test(text(readme)), `${readme} 还在写旧的 node tests/xxx.mjs 跑法`);
 }
 
-// The repository landing page and the npm page both render README.md, so the
-// default entry point must stay Chinese; English lives beside it as README.en.md.
-const readmePrimary = readText("README.md");
-check(
-  /^## 功能$/m.test(readmePrimary) && /简体中文/.test(readmePrimary),
-  "README.md must stay the Chinese entry point (it is what GitHub and npm render)",
-);
-check(
-  /^\*\*English\*\*$/m.test(readText("README.en.md")) || /·\s*\*\*English\*\*/.test(readText("README.en.md")),
-  "README.en.md must be the English page",
-);
-check(!existsSync(join(root, "README.zh.md")), "README.zh.md is retired; the Chinese page is README.md");
-
-// Market badge: two separate assets, no bare badge-listed.svg (that 404s).
-// Checked statically so the check still runs offline in CI.
-check(/badge-listed-zh\.svg/.test(readmePrimary), "README.md must use the Chinese market badge (badge-listed-zh.svg)");
-check(
-  /badge-listed-en\.svg/.test(readText("README.en.md")),
-  "README.en.md must use the English market badge (badge-listed-en.svg)",
-);
-for (const readme of ["README.md", "README.en.md"]) {
-  check(
-    !/badge-listed\.svg/.test(readText(readme)),
-    `${readme} references badge-listed.svg, which does not exist upstream`,
-  );
+const readmeZh = text("README.md");
+const readmeEn = text("README.en.md");
+expect(/^## 功能$/m.test(readmeZh) && readmeZh.includes("简体中文"), "README.md 应保持为中文入口");
+expect(/\*\*English\*\*/.test(readmeEn), "README.en.md 应是英文页");
+expect(!exists("README.zh.md"), "README.zh.md 已停用，中文页就是 README.md");
+// 市场徽章分中英文两张；不带语言后缀的 badge-listed.svg 在上游不存在（会 404）。
+expect(readmeZh.includes("badge-listed-zh.svg"), "README.md 应使用中文市场徽章 badge-listed-zh.svg");
+expect(readmeEn.includes("badge-listed-en.svg"), "README.en.md 应使用英文市场徽章 badge-listed-en.svg");
+for (const [name, body] of [["README.md", readmeZh], ["README.en.md", readmeEn]]) {
+  expect(!body.includes("badge-listed.svg"), `${name} 引用了不存在的 badge-listed.svg`);
 }
 
-if (failures.length > 0) {
-  console.error(`manifest check failed (${failures.length}):`);
-  for (const failure of failures) console.error(`  - ${failure}`);
-  process.exit(1);
-}
-console.log(`manifest check passed (${declaredTests} tests declared)`);
-assert.ok(declaredTests > 0);
+audit.finish(`声明测试 ${tests} 项`);
