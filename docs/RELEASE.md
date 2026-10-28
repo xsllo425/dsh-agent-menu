@@ -58,10 +58,11 @@ tag 也会触发一次 CI，等它绿。
 说明先写成文件（放 `docs/RELEASE-vX.Y.Z.md`，并加进 `package.json` 的 `files[]`，或者放仓库外），包含这版改了什么、安装命令（带 tag）、已知限制。
 
 ```sh
-E:/Work/patch/gh.sh release create vX.Y.Z --title vX.Y.Z --notes-file docs/RELEASE-vX.Y.Z.md --verify-tag
+GH="$HOME/.dsh/skills/github-workspace-ops/gh.sh"
+"$GH" release create vX.Y.Z --title "vX.Y.Z — 一句话" --notes-file docs/RELEASE-vX.Y.Z.md --verify-tag
 ```
 
-`gh.sh` 从 `git credential` 现取 token，不在磁盘留凭据。建完确认 `draft=false`。网络抖动导致的失败要先只读复查（`gh.sh release view`）再重试，避免重复创建。
+标题用中文，和 `dsh-work-status` 的 release 保持一致；notes 文件本身也写成中文（仓库默认语言是中文）。`gh.sh` 从 `git credential` 现取 token，不在磁盘留凭据。建完确认 `draft=false`。网络抖动导致的失败要先只读复查（`release view` / `api .../releases/tags/vX.Y.Z`）再重试，避免重复创建。
 
 ## 7. 发 npm（插件中心只认 npm 安装）
 
@@ -83,8 +84,12 @@ npm publish
 
 - 收录 issue（`2BingLing/dsh-market` #294）是一次性入口，之后与日常更新无关。
 - issue 正文只影响作者自述、中文简介、安装命令；改版本号、测试数写进正文没有作用。
-- **安装命令必须放在 `sh` 或 `bash` 代码块里**（或以 `$` 开头的行），表格里的命令不会被解析。
-- 本仓库 README 的安装命令现在写作 `dsh plugin --profile desktop add github:xsllo425/dsh-agent-menu`，放在 `sh` 代码块内，符合要求。
+- **安装命令必须放在 `bash` 或 `sh` 代码块里**（或以 `$` 开头的行），表格里的命令不会被解析。
+- 本仓库 README 的安装命令现在写作 `dsh plugin --profile desktop add github:xsllo425/dsh-agent-menu`，放在 `bash` 代码块内，符合要求。
+
+## 语言：默认中文
+
+GitHub 仓库首页和 npm 包页渲染的都是 `README.md`，所以**主 README 必须是中文**，英文版放 `README.en.md`（与 `dsh-work-status` 同构）。`check-manifest` 会断言这条，改错方向直接报错。发版说明、release 标题也写中文。
 
 ## 9. 本机实际看一眼
 
