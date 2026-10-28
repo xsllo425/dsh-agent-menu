@@ -1,7 +1,9 @@
-// dsh-agent-menu 0.7.0 生效范围测试（node tests/scope.mjs）。
+// dsh-agent-menu 生效范围测试（node --test tests/scope.test.mjs）。
 // 只在对话消息和可编辑框里接管右键；选区、代码块、链接、文件和图片只提供
 // 当前精简菜单，任何场景都不出现 AI 动作。
 
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const PLUGIN = new URL('../lib/client.js', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
@@ -69,8 +71,6 @@ let fire
   fire = listeners[listeners.length - 1]
 }
 
-let failed = 0
-const check = (cond, msg) => { if (cond) console.log('  ✓', msg); else { failed += 1; console.error('  ✗', msg) } }
 const tick = () => new Promise((r) => setTimeout(r, 10))
 const labels = () => (menuRootNode ? menuRootNode.childNodes.filter((n) => n.tagName === 'BUTTON').map((b) => b.childNodes[0].textContent) : null)
 
@@ -78,40 +78,78 @@ const chatRow = makeEl('div', { attrs: { 'data-chat-turn': '3' } })
 const inChat = (tag, opts = {}) => makeEl(tag, { ...opts, parent: chatRow })
 const outside = (tag, opts = {}) => makeEl(tag, { ...opts, parent: makeEl('div', { attrs: { 'data-settings': '' } }) })
 
-async function rightClick(name, target, sel, expect) {
+/** 触发一次右键，返回弹出的菜单项（null = 放行原生菜单）。 */
+async function rightClick(target, sel) {
   menuRootNode = null
   selection = sel
   let prevented = false
   fire({ clientX: 100, clientY: 100, target, preventDefault() { prevented = true }, stopPropagation() {} })
   await tick()
   const got = labels()
-  console.log('■ ' + name + ' → ' + (got ? got.join(' / ') : '不接管'))
-  if (expect === null) {
-    check(got === null && prevented === false, '不接管，也不拦原生菜单')
-  } else {
-    check(got !== null && prevented === true, '弹出本插件菜单')
-    if (expect.exact) check(JSON.stringify(got) === JSON.stringify(expect.exact), '菜单项精确匹配：' + expect.exact.join(' / '))
-    for (const label of expect.has || []) check(got !== null && got.includes(label), '含「' + label + '」')
-    for (const label of expect.not || []) check(got === null || !got.includes(label), '不含「' + label + '」')
-  }
+  if (got === null) assert.equal(prevented, false, '不接管时不能吞掉原生菜单')
+  else assert.equal(prevented, true, '弹出本插件菜单时必须 preventDefault')
+  return got
 }
 
 const AI = ['发送给 AI', '引用到输入框', '让 AI 解释这段内容', '总结选区', '引用此段到输入框', '让 AI 解释此段', '复制此段']
 const hitRect = [{ left: 90, top: 90, right: 120, bottom: 110 }]
 const missRect = [{ left: 400, top: 400, right: 500, bottom: 420 }]
 
-await rightClick('消息里选中文字，点在选区上', inChat('p', { text: '一段话' }), { text: '选中的字', rects: hitRect }, { has: ['复制'], not: AI })
-await rightClick('消息里选中文字，但点在选区外的普通段落', inChat('p', { text: '另一段' }), { text: '选中的字', rects: missRect }, null)
-await rightClick('消息里没选中文字的段落', inChat('p', { text: '普通段落' }), { text: '', rects: [] }, null)
-await rightClick('消息里的表格单元格', inChat('td', { text: '表格内容' }), { text: '', rects: [] }, null)
-await rightClick('消息里的代码块（没选中）', inChat('pre', { text: 'const a = 1' }), { text: '', rects: [] }, { exact: ['复制代码'], not: AI })
-await rightClick('代码块里选中文字', inChat('pre', { text: 'const a = 1' }), { text: 'const', rects: hitRect }, { has: ['复制'], not: AI })
-await rightClick('对话区外（设置页）有选中文字', outside('p', { text: '设置说明' }), { text: '设置说明', rects: hitRect }, null)
-await rightClick('对话区外的普通文字', outside('span', { text: '工具栏' }), { text: '', rects: [] }, null)
-await rightClick('消息里的链接', inChat('a', { text: '文档', attrs: { href: 'https://example.com/doc' } }), { text: '', rects: [] }, { exact: ['复制链接地址', '复制为 Markdown 链接', '在浏览器中打开'], not: AI })
-await rightClick('消息里的文件路径', inChat('code', { text: 'src/main.ts' }), { text: '', rects: [] }, { exact: ['复制路径', '打开文件位置', '用默认应用打开'], not: ['复制相对路径', '复制本地文件链接', '复制文件名', ...AI] })
-await rightClick('输入框（不在对话区里）', outside('div', { editable: true, text: '草稿' }), { text: '', rects: [] }, { has: ['粘贴', '全选'], not: AI })
-await rightClick('输入框里选中文字', outside('textarea', { text: '草稿' }), { text: '草', rects: hitRect }, { has: ['剪切', '复制', '粘贴'], not: AI })
+test('消息里选中文字，点在选区上 → 只复制', async () => {
+  const got = await rightClick(inChat('p', { text: '一段话' }), { text: '选中的字', rects: hitRect })
+  assert.ok(got.includes('复制'), '含「复制」')
+  for (const label of AI) assert.ok(!got.includes(label), '不含「' + label + '」')
+})
 
-console.log(failed === 0 ? '\n结果：✅ 全部通过' : '\n结果：❌ 失败 ' + failed + ' 项')
-process.exitCode = failed === 0 ? 0 : 1
+test('消息里选中文字，但点在选区外的普通段落 → 放行原生菜单', async () => {
+  assert.equal(await rightClick(inChat('p', { text: '另一段' }), { text: '选中的字', rects: missRect }), null)
+})
+
+test('消息里没选中文字的段落 → 放行原生菜单', async () => {
+  assert.equal(await rightClick(inChat('p', { text: '普通段落' }), { text: '', rects: [] }), null)
+})
+
+test('消息里的表格单元格 → 放行原生菜单', async () => {
+  assert.equal(await rightClick(inChat('td', { text: '表格内容' }), { text: '', rects: [] }), null)
+})
+
+test('消息里的代码块（没选中）→ 只复制代码', async () => {
+  assert.deepEqual(await rightClick(inChat('pre', { text: 'const a = 1' }), { text: '', rects: [] }), ['复制代码'])
+})
+
+test('代码块里选中文字 → 复制', async () => {
+  const got = await rightClick(inChat('pre', { text: 'const a = 1' }), { text: 'const', rects: hitRect })
+  assert.ok(got.includes('复制'), '含「复制」')
+  for (const label of AI) assert.ok(!got.includes(label), '不含「' + label + '」')
+})
+
+test('对话区外（设置页）有选中文字 → 放行原生菜单', async () => {
+  assert.equal(await rightClick(outside('p', { text: '设置说明' }), { text: '设置说明', rects: hitRect }), null)
+})
+
+test('对话区外的普通文字 → 放行原生菜单', async () => {
+  assert.equal(await rightClick(outside('span', { text: '工具栏' }), { text: '', rects: [] }), null)
+})
+
+test('消息里的链接 → 三项链接操作', async () => {
+  const target = inChat('a', { text: '文档', attrs: { href: 'https://example.com/doc' } })
+  assert.deepEqual(await rightClick(target, { text: '', rects: [] }), ['复制链接地址', '复制为 Markdown 链接', '在浏览器中打开'])
+})
+
+test('消息里的文件路径 → 三项文件操作，且不含已删除的冗余项', async () => {
+  const got = await rightClick(inChat('code', { text: 'src/main.ts' }), { text: '', rects: [] })
+  assert.deepEqual(got, ['复制路径', '打开文件位置', '用默认应用打开'])
+  for (const label of ['复制相对路径', '复制本地文件链接', '复制文件名', ...AI]) assert.ok(!got.includes(label), '不含「' + label + '」')
+})
+
+test('输入框（不在对话区里）→ 粘贴与全选', async () => {
+  const got = await rightClick(outside('div', { editable: true, text: '草稿' }), { text: '', rects: [] })
+  assert.ok(got.includes('粘贴'), '含「粘贴」')
+  assert.ok(got.includes('全选'), '含「全选」')
+})
+
+test('输入框里选中文字 → 剪切、复制、粘贴', async () => {
+  const got = await rightClick(outside('textarea', { text: '草稿' }), { text: '草', rects: hitRect })
+  for (const label of ['剪切', '复制', '粘贴']) assert.ok(got.includes(label), '含「' + label + '」')
+  for (const label of AI) assert.ok(!got.includes(label), '不含「' + label + '」')
+})

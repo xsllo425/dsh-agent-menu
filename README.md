@@ -28,11 +28,11 @@ English | [简体中文](README.zh.md)
 
 ## Install
 
-```sh
-dsh plugin --profile desktop add <this directory or tarball>
+```bash
+dsh plugin --profile desktop add github:xsllo425/dsh-agent-menu
 ```
 
-Use your actual profile. Restart DSH after installing or changing host code.
+From a local checkout or tarball, use `dsh plugin --profile desktop add <this directory or tarball>`. Use your actual profile. Restart DSH after installing or changing host code.
 
 ## Coexistence and failure behavior
 
@@ -43,18 +43,15 @@ Use your actual profile. Restart DSH after installing or changing host code.
 
 ## Development checks
 
-```sh
-node --check lib/client.js
-node tests/scope.mjs
-node tests/sidebar-actions.mjs
-node tests/rightclick-native.mjs
-node tests/smoke.mjs
-node tests/status-phrases.mjs
-node tests/image-bytes.mjs
+```bash
+node --test tests/*.test.mjs          # 43 tests, no dependencies
+node scripts/check-manifest.mjs       # manifest, exports, icon, docs
 ```
 
-These cover DOM/service stubs, native slot registrations and host routes. `image-bytes.mjs` writes and reads the real system clipboard. They do not replace browser acceptance in a live DSH UI. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for implementation boundaries and debugging notes.
+`npm run verify` runs the syntax checks, all tests and the manifest self-check in one go.
+
+These cover DOM/service stubs, native slot registrations and host routes. `tests/image-bytes.test.mjs` writes and reads the real system clipboard (Windows only; skipped elsewhere). They do not replace browser acceptance in a live DSH UI. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for implementation boundaries and debugging notes.
 
 ## License
 
-MIT
+MIT. The bundled waiting-status phrase library is derived from [dsh-status-rotator](https://github.com/01Virex/dsh-status-rotator) (MIT); see [NOTICE](NOTICE).

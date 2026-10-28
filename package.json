@@ -1,47 +1,74 @@
 {
   "name": "dsh-agent-menu",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "A restrained context menu for DeepSeek Harness: copy selections and code, manage links/files/images, and add real workspace/session directory actions to native sidebar menus.",
   "description_i18n": {
     "zh-CN": "DeepSeek Harness 精简右键菜单：复制选区与代码，处理链接、文件和图片，并在原生工作区/会话菜单中补充真实目录操作。不包含 AI 提问或提示词发送。"
   },
   "license": "MIT",
+  "author": "xsllo425",
   "type": "module",
   "main": "./lib/index.js",
   "exports": {
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
-    "./package.json": "./package.json",
-    "./locale/*.json": "./locale/*.json"
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
   },
+  "icon": "./icon.svg",
   "files": [
     "lib/client.js",
     "lib/index.js",
     "lib/status-phrases.json",
     "!lib/*.bak*",
-    "docs",
     "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "scripts/*.mjs",
+    "tests/*.test.mjs",
+    "docs/DEVELOPMENT.md",
+    "docs/RELEASE.md",
+    "docs/RELEASE-v0.7.1.md",
+    "CHANGELOG.md",
+    "NOTICE",
     "README.md",
     "README.zh.md",
     "LICENSE"
   ],
   "keywords": [
-    "dsh",
     "dsh-plugin",
     "deepseek-harness",
+    "dsh",
     "context-menu",
     "right-click",
     "clipboard",
-    "image",
     "code-block",
     "markdown",
-    "undo",
+    "image",
     "sidebar",
     "workspace",
-    "web-ui"
+    "session"
   ],
   "engines": {
-    "node": ">=18"
+    "dsh": ">=0.2.1-rc.2"
+  },
+  "scripts": {
+    "check": "node scripts/check-manifest.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "verify": "node --check lib/client.js && node --check lib/index.js && node --test tests/*.test.mjs && node scripts/check-manifest.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xsllo425/dsh-agent-menu.git"
+  },
+  "homepage": "https://github.com/xsllo425/dsh-agent-menu#readme",
+  "bugs": {
+    "url": "https://github.com/xsllo425/dsh-agent-menu/issues"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "dsh": {
     "runtime": "host",
@@ -55,7 +82,7 @@
   },
   "dshLocal": {
     "title": "右键菜单（精简版）",
-    "summary": "只在对话消息和输入框里接管右键：复制选中文字、链接、文件、图片、输入框编辑；等待时轮换短语。",
+    "summary": "只在对话消息和输入框里接管右键：复制选中文字、链接、文件、图片、输入框编辑；侧栏原生菜单补目录操作；等待时轮换短语。",
     "features": [
       "选中文字：复制",
       "链接：复制地址 / Markdown 链接 / 在浏览器打开",
@@ -63,14 +90,19 @@
       "代码块：复制代码",
       "图片：复制 / 另存为",
       "输入框：剪切 / 复制 / 粘贴 / 全选",
-      "工作区/会话：原生操作 + 复制目录 / 打开位置",
+      "工作区/会话：原生操作 + 新建会话 / 复制目录 / 打开位置",
       "等待时的轮换短语"
     ],
     "files": [
       "lib/client.js",
       "lib/index.js",
       "lib/status-phrases.json",
-      "tests/scope.mjs"
+      "tests/scope.test.mjs",
+      "tests/sidebar-actions.test.mjs",
+      "tests/smoke.test.mjs",
+      "tests/status-phrases.test.mjs",
+      "tests/rightclick-native.test.mjs",
+      "tests/image-bytes.test.mjs"
     ],
     "background": "等待短语：全页变化监听（逐帧合并）+ 1 秒定时器刷新短语。",
     "backup": "E:\\Backups\\agent-menu-20261019",

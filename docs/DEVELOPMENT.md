@@ -58,7 +58,7 @@ ctx.slots.inject('sidebar.workspaces.session.menu.item', () => ctx.slots.registe
 - 文件菜单只保留复制路径、打开位置、默认应用打开；已移除相对路径、文件名和 `file:` URL 等冗余复制项。
 - 会话图片可从 `/api/file?path=<absolute path>` 解出本地路径。`blob:` / `data:` 图片在渲染层读取字节，走 `copy-image-bytes` / `save-image-bytes`。
 - 「另存为」复制而非移动原文件。Windows 打开文件位置需要 `explorer.exe /select,` 与 `windowsVerbatimArguments: true`；目录定位则由宿主选择适当打开方式。
-- 系统剪贴板优先 Electron，非 Electron 环境使用 PowerShell 兜底。`image-bytes.mjs` 会真实覆盖并读回系统剪贴板，运行前应知悉这一点。
+- 系统剪贴板优先 Electron，非 Electron 环境使用 PowerShell 兜底。`tests/image-bytes.test.mjs` 会真实覆盖并读回系统剪贴板，运行前应知悉这一点。
 
 ## 视觉与文案
 
@@ -69,20 +69,24 @@ ctx.slots.inject('sidebar.workspaces.session.menu.item', () => ctx.slots.registe
 ## 验证与调试
 
 ```sh
-node --check lib/client.js
-node tests/scope.mjs
-node tests/sidebar-actions.mjs
-node tests/rightclick-native.mjs
-node tests/smoke.mjs
-node tests/status-phrases.mjs
-node tests/image-bytes.mjs
+npm run verify   # 语法 + 43 项测试 + 清单自检
 ```
 
-- `scope.mjs`：精确菜单范围与代码块。
-- `sidebar-actions.mjs`：官方插槽、cwd、工作区菜单追加与原生新建按钮。
-- `rightclick-native.mjs`：有项才接管、异常放行、代际失效、输入框图片。测试中的 `Error: boom` 是故意注入的异常，成功时仍会出现其日志。
-- `smoke.mjs`：file-menu、round-rightclick 共存和复制宿主路由。
-- `status-phrases.mjs` / `image-bytes.mjs`：等待短语与真实剪贴板宿主通道。
+等价的手工命令：
+
+```sh
+node --check lib/client.js
+node --check lib/index.js
+node --test tests/*.test.mjs
+node scripts/check-manifest.mjs
+```
+
+- `tests/scope.test.mjs`：精确菜单范围与代码块。
+- `tests/sidebar-actions.test.mjs`：官方插槽、cwd、工作区菜单追加与原生新建按钮。工作区那条链（右键 → 原生菜单 → 追加三项 → 点新建会话）必须留在同一个 test 内，否则会退化成依赖执行顺序的假通过。
+- `tests/rightclick-native.test.mjs`：有项才接管、异常放行、代际失效、输入框图片。测试中的 `Error: boom` 是故意注入的异常，成功时仍会出现其日志。
+- `tests/smoke.test.mjs`：file-menu、round-rightclick 共存和复制宿主路由。
+- `tests/status-phrases.test.mjs` / `tests/image-bytes.test.mjs`：等待短语与真实剪贴板宿主通道。后者会真实写入并读回系统剪贴板。
+- `scripts/check-manifest.mjs`：清单、导出映射、patch 行、双语元数据、图标格式、客户端注册 id 与宿主侧导出，以及 README 的测试数/安装命令和 CHANGELOG 版本头是否与代码一致。
 
 这些都是桩环境或宿主路由验证，**不能代替真实 DSH 页面验收**。当前通用浏览器打开本机 DSH URL 出现 `dsh web authentication required`，未完成页面实测；不得把离线通过写成界面已验收。
 

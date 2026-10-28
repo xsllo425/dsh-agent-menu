@@ -28,11 +28,11 @@
 
 ## 安装与更新
 
-```sh
-dsh plugin --profile desktop add <本目录或 tarball 路径>
+```bash
+dsh plugin --profile desktop add github:xsllo425/dsh-agent-menu
 ```
 
-请替换为实际使用的 profile。安装或宿主代码更新后需要重启 DSH；不要仅为刷新客户端而反复重启。
+从本地目录或 tarball 安装：`dsh plugin --profile desktop add <本目录或 tarball 路径>`。请替换为实际使用的 profile。安装或宿主代码更新后需要重启 DSH；不要仅为刷新客户端而反复重启。
 
 ## 与其他右键插件共存
 
@@ -62,18 +62,15 @@ dsh plugin --profile desktop add <本目录或 tarball 路径>
 
 ## 维护与验证
 
-```sh
-node --check lib/client.js
-node tests/scope.mjs
-node tests/sidebar-actions.mjs
-node tests/rightclick-native.mjs
-node tests/smoke.mjs
-node tests/status-phrases.mjs
-node tests/image-bytes.mjs
+```bash
+node --test tests/*.test.mjs          # 43 项，无任何依赖
+node scripts/check-manifest.mjs       # 清单、导出、图标、文档一致性
 ```
 
-这些测试覆盖 DOM/服务桩、原生插槽注册和宿主路由；`image-bytes.mjs` 会实际写入并读取系统剪贴板。它们不能代替真实 DSH 界面的浏览器验收。开发与边界记录见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
+`npm run verify` 一次跑完语法检查、全部测试和清单自检。
+
+这些测试覆盖 DOM/服务桩、原生插槽注册和宿主路由；`tests/image-bytes.test.mjs` 会实际写入并读取系统剪贴板（仅 Windows，其他平台跳过）。它们不能代替真实 DSH 界面的浏览器验收。开发与边界记录见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。发版流程见 [docs/RELEASE.md](docs/RELEASE.md)。
 
 ## 许可
 
-MIT
+MIT。等待短语词库派生自 [dsh-status-rotator](https://github.com/01Virex/dsh-status-rotator)（MIT），见 [NOTICE](NOTICE)。

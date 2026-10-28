@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Agent Menu">
+  <defs>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4D6BFE"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="10" width="34" height="30" rx="7" fill="url(#card)" opacity="0.14"/>
+  <rect x="8" y="10" width="34" height="30" rx="7" fill="none" stroke="url(#card)" stroke-width="2.4"/>
+  <path d="M16 20 H34" stroke="#4D6BFE" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M16 27 H34" stroke="#4D6BFE" stroke-width="2.6" stroke-linecap="round" opacity="0.75"/>
+  <path d="M16 34 H26" stroke="#4D6BFE" stroke-width="2.6" stroke-linecap="round" opacity="0.5"/>
+  <path d="M32 30 L32 50.5 L37.6 45.4 L41.4 54 L45.4 52.3 L41.7 43.9 L48.8 43.2 Z"
+        fill="#7C5CFF" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+</svg>
