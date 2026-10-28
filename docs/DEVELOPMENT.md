@@ -6,9 +6,8 @@
 
 | 文件 | 说明 |
 | --- | --- |
-| `lib/client.js` | 右键分类、纯 DOM 菜单、输入框操作、原生侧栏扩展、等待短语。侧栏 React 组件使用 DSH Module Loader 提供的 `react` 与 `@deepseek-ai/dsh-client-ui-primitives`。 |
-| `lib/index.js` | 宿主 `/agent-menu` 路由：系统剪贴板、图像复制/另存、打开位置、默认应用打开、状态短语、诊断。 |
-| `lib/status-phrases.json` | 等待短语词库；本轮没有改动。 |
+| `lib/client.js` | 右键分类、纯 DOM 菜单、输入框操作、原生侧栏扩展。侧栏 React 组件使用 DSH Module Loader 提供的 `react` 与 `@deepseek-ai/dsh-client-ui-primitives`。 |
+| `lib/index.js` | 宿主 `/agent-menu` 路由：系统剪贴板、图像复制/另存、打开位置、默认应用打开、诊断。 |
 | `cordis.patch.yml` | 宿主 bundle 注册。 |
 
 ## 右键判定与共存
@@ -85,7 +84,7 @@ node scripts/check-manifest.mjs
 - `tests/sidebar-actions.test.mjs`：官方插槽、cwd、工作区菜单追加与原生新建按钮。工作区那条链（右键 → 原生菜单 → 追加三项 → 点新建会话）必须留在同一个 test 内，否则会退化成依赖执行顺序的假通过。
 - `tests/rightclick-native.test.mjs`：有项才接管、异常放行、代际失效、输入框图片。测试中的 `Error: boom` 是故意注入的异常，成功时仍会出现其日志。
 - `tests/smoke.test.mjs`：file-menu、round-rightclick 共存和复制宿主路由。
-- `tests/status-phrases.test.mjs` / `tests/image-bytes.test.mjs`：等待短语与真实剪贴板宿主通道。后者会真实写入并读回系统剪贴板。
+- `tests/image-bytes.test.mjs`：真实剪贴板宿主通道，会真实写入并读回系统剪贴板。
 - `scripts/check-manifest.mjs`：清单、导出映射、patch 行、双语元数据、图标格式、客户端注册 id 与宿主侧导出，以及 README 的测试数/安装命令和 CHANGELOG 版本头是否与代码一致。
 
 这些都是桩环境或宿主路由验证，**不能代替真实 DSH 页面验收**。当前通用浏览器打开本机 DSH URL 出现 `dsh web authentication required`，未完成页面实测；不得把离线通过写成界面已验收。

@@ -3,14 +3,6 @@ Copyright (c) 2026 xsllo425
 
 This project is licensed under the MIT License; see LICENSE.
 
-Third-party material
-
-The bundled waiting-status phrase library (lib/status-phrases.json) is derived
-from the configuration shipped with dsh-status-rotator 0.35.0
-(https://github.com/01Virex/dsh-status-rotator), licensed under the MIT License.
-The phrase text is used unmodified; the JSON shape, filtering and rotation logic
-in this plugin are its own code. This file serves as the required attribution.
-
-No other third-party code, artwork or fonts are bundled. The plugin reads the
+No third-party code, text, artwork or fonts are bundled. The plugin reads the
 host's own DOM, theme CSS custom properties and public service snapshots at
 runtime; nothing from the DeepSeek Harness application is redistributed here.

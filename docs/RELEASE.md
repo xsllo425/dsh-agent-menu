@@ -102,7 +102,7 @@ GitHub 仓库首页和 npm 包页渲染的都是 `README.md`，所以**主 READM
 ## 10. 仓库元数据（偶尔核对）
 
 - `package.json`：`author: xsllo425`、`repository`（git+https://github.com/xsllo425/dsh-agent-menu.git）、`homepage`、`bugs`、`keywords`、`license: MIT`、`publishConfig`、`engines.dsh`
-- `LICENSE`（MIT）与 `NOTICE`（源自 dsh-status-rotator 0.35.0 的词库）都在，且都在 `files[]` 里
+- `LICENSE`（MIT）与 `NOTICE`（声明不含第三方代码、文案和素材）都在，且都在 `files[]` 里
 - `icon.svg` 在根目录，`package.json.icon` 与 `exports["./icon"]` 都指向它
 - GitHub topics：`dsh-plugin`、`deepseek-harness`、`dsh`、`plugin`、`context-menu`
 - 三种装法（npm / GitHub / 本地目录或 tarball）都还能用

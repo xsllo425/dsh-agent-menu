@@ -32,7 +32,7 @@
 - 不做侧栏批量归档/删除、分区、分享、云端同步、环境另存。
 - 不为了像 Claude 而强造子菜单或快捷键；功能真实接入后才显示对应快捷键。
 - 不做「在独立窗口中打开会话」：用户已决定不再继续查证，按 DSH 没有此能力处理。
-- 本轮不顺手拆分或重构等待状态短语功能；去留另行决定。
+- 等待状态短语功能已在 0.8.0 移除，不要恢复。
 
 ## 4. 菜单定案
 
@@ -106,7 +106,7 @@
 - 文件、链接、选区、输入框的 AI 项已删；不要误恢复。
 - 图片有路径/字节双通道：本地 `/api/file?path=` 图片走路径；`blob:`/`data:` 图片由客户端读为 base64，再经宿主 `copy-image-bytes` / `save-image-bytes` 完成操作。该通道不是死代码，保留。
 - 左侧栏当前只触发原生 ⋮ 菜单，并没有完成上一轮提到的侧栏补项。
-- 等待短语在 `lib/status-phrases.json`，与右键无关。
+- 等待短语功能已在 0.8.0 移除（状态行归 dsh-work-status 管）。
 
 ## 7. 代码入口
 
@@ -114,7 +114,6 @@
 |---|---|
 | `lib/client.js` | 右键捕获、场景分类、菜单项、DOM 菜单、侧栏入口；文案集中在 `LANG` |
 | `lib/index.js` | 宿主 `/agent-menu` 路由：剪贴板、图片复制/另存、文件定位/打开、诊断 |
-| `lib/status-phrases.json` | 等待短语词库，本轮不动 |
 | `docs/DEVELOPMENT.md` | 架构、共存与历史踩坑；其中「侧栏不新增」等旧结论已被本文替代 |
 | `docs/CLAUDE-RIGHTCLICK-REFERENCE.md` | Claude/Codex/MiniMax/WorkBuddy 实机截图整理，是菜单参考来源 |
 | `PATCH-NOTES.md` | 逐版本变更历史；含旧路径和旧行为，阅读时区分历史与现状 |
@@ -141,7 +140,7 @@
 4. 更新测试，尤其覆盖：代码块复制、精简后的文件/图片项、白名单放行、侧栏两类行及新增项。
 5. 重写 README / README.zh 和 package 描述，使其只描述实际功能。
 6. 浏览器实测并记录截图/结果；命令通过不等于实际右键已验证。
-7. 提交、打 tag、推送 GitHub；等待短语去留在发布说明里如实交代。
+7. 提交、打 tag、推送 GitHub。
 
 ## 10. 验证命令
 
@@ -149,7 +148,6 @@
 node --check lib/client.js
 node tests/scope.mjs
 node tests/rightclick-native.mjs
-node tests/status-phrases.mjs
 node tests/image-bytes.mjs
 ```
 

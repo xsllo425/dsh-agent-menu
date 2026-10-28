@@ -31,7 +31,6 @@
 - 工作区「新建会话」调用同一行已有的原生按钮；会话目录操作注册到官方 `sidebar.workspaces.session.menu.item` 插槽。工作区原生菜单目前没有对应插槽，追加项仅在确认是工作区原生菜单时出现。
 - 相对文件路径必须能取得当前会话目录才会显示文件操作。图片的 `blob:` / `data:` 地址通过宿主字节路由复制或另存，不伪造本地路径。
 - 菜单使用宿主主题色，卡片圆角 12px、菜单项圆角 6px，无图标、弱分隔线与轻阴影。工作区和会话的原生菜单保留 DSH 自身样式。
-- 保留等待状态短句功能，配置方式见下文。
 
 ## 安装与更新
 
@@ -48,29 +47,10 @@ dsh plugin --profile desktop add github:xsllo425/dsh-agent-menu
 - **dsh-session-deck**：侧栏右键在 window 捕获阶段阻止后续抢占，再触发原生按钮。
 - 在判定菜单项和调用 `preventDefault()` 时发生异常，均放行原生菜单，避免出现「右键无反应」。
 
-## 等待状态短句
-
-运行状态按 `thinking`（0–15 秒）→ `running`（15–60 秒）→ `long`（≥60 秒）抽句，默认每 10 秒轮换。词库位于 `lib/status-phrases.json`，可在 `~/.dsh/agent-menu/status-phrases.json` 覆盖：
-
-```json
-{
-  "enabled": true,
-  "enabledPacks": ["deepseek", "coding", "daily"],
-  "rotateMs": 8000,
-  "longAfterMs": 90000,
-  "packs": [
-    { "id": "mine", "label": { "zh": "我的", "en": "Mine" },
-      "phrases": { "zh": { "thinking": ["正在认真想…"], "running": ["正在埋头干…"], "long": ["还在跑，别急…"] } } }
-  ]
-}
-```
-
-`enabled: false` 可关闭；与内置包同 id 会替换该包，否则新增。异常时保留宿主原文。
-
 ## 维护与验证
 
 ```bash
-node --test tests/*.test.mjs          # 43 项，无任何依赖
+node --test tests/*.test.mjs          # 35 项，无任何依赖
 node scripts/check-manifest.mjs       # 清单、导出、图标、文档一致性
 ```
 
@@ -80,4 +60,4 @@ node scripts/check-manifest.mjs       # 清单、导出、图标、文档一致�
 
 ## 许可
 
-MIT。等待短语词库派生自 [dsh-status-rotator](https://github.com/01Virex/dsh-status-rotator)（MIT），见 [NOTICE](NOTICE)。
+MIT，见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。

@@ -31,7 +31,6 @@ A restrained right-click menu for the DeepSeek Harness Web UI. It provides clipb
 - Session additions use the official `sidebar.workspaces.session.menu.item` slot and native `MenuItemButton`. Workspace menus have no corresponding slot, so additions are made only after identifying the actual native workspace menu. New session invokes the existing native row button.
 - Relative file operations are hidden when no authoritative session directory is available. `blob:` / `data:` images use host byte routes rather than invented local paths.
 - Custom menus follow the active theme, with a 12px card radius, 6px item radius, subtle separators and a light shadow. Native sidebar menus keep DSH's own styling.
-- The optional waiting-status phrase rotation is retained; see the Chinese documentation for its JSON configuration.
 
 ## Install
 
@@ -48,29 +47,10 @@ From a local checkout or tarball, use `dsh plugin --profile desktop add <this di
 - **dsh-session-deck**: stop later sidebar context-menu handlers before invoking the native row button.
 - Build menu items synchronously before `preventDefault()`. Empty results, stale generations and errors all release the native menu instead of leaving a silent right-click.
 
-## Waiting-status phrases
-
-Phrases rotate by state — `thinking` (0–15 s) → `running` (15–60 s) → `long` (≥60 s) — every 10 seconds by default. The library lives in `lib/status-phrases.json` and can be overridden at `~/.dsh/agent-menu/status-phrases.json`:
-
-```json
-{
-  "enabled": true,
-  "enabledPacks": ["deepseek", "coding", "daily"],
-  "rotateMs": 8000,
-  "longAfterMs": 90000,
-  "packs": [
-    { "id": "mine", "label": { "zh": "我的", "en": "Mine" },
-      "phrases": { "zh": { "thinking": ["正在认真想…"], "running": ["正在埋头干…"], "long": ["还在跑，别急…"] } } }
-  ]
-}
-```
-
-`enabled: false` turns rotation off; a pack with an existing id replaces it, otherwise it is added. On any error the host's own text is kept.
-
 ## Development checks
 
 ```bash
-node --test tests/*.test.mjs          # 43 tests, no dependencies
+node --test tests/*.test.mjs          # 35 tests, no dependencies
 node scripts/check-manifest.mjs       # manifest, exports, icon, docs
 ```
 
@@ -80,4 +60,4 @@ These cover DOM/service stubs, native slot registrations and host routes. `tests
 
 ## License
 
-MIT. The bundled waiting-status phrase library is derived from [dsh-status-rotator](https://github.com/01Virex/dsh-status-rotator) (MIT); see [NOTICE](NOTICE).
+MIT; see [LICENSE](LICENSE) and [NOTICE](NOTICE).
