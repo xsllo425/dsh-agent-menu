@@ -1,6 +1,6 @@
 {
   "name": "dsh-agent-menu",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "A restrained context menu for DeepSeek Harness: copy selections and code, manage links/files/images, and add real workspace/session directory actions to native sidebar menus.",
   "description_i18n": {
     "zh-CN": "DeepSeek Harness 精简右键菜单：复制选区与代码，处理链接、文件和图片，并在原生工作区/会话菜单中补充真实目录操作。不包含 AI 提问或提示词发送。"
@@ -31,6 +31,7 @@
     "docs/RELEASE-v0.7.1.md",
     "docs/RELEASE-v0.8.0.md",
     "docs/RELEASE-v0.8.1.md",
+    "docs/RELEASE-v0.8.2.md",
     "CHANGELOG.md",
     "NOTICE",
     "README.md",
@@ -91,7 +92,7 @@
       "代码块：复制代码",
       "图片：复制 / 另存为",
       "输入框：剪切 / 复制 / 粘贴 / 全选",
-      "工作区/会话：原生操作 + 新建会话 / 复制目录 / 打开位置"
+      "工作区/会话：原生操作 + 新建会话 / 复制目录 / 打开位置 / 删除会话"
     ],
     "files": [
       "lib/client.js",

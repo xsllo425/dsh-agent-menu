@@ -38,10 +38,25 @@ function element(tag, options = {}) {
       child.parentNode = this
       return child
     },
+    insertBefore(child, ref) {
+      if (child.nodeType === 11) {
+        for (const item of [...child.childNodes]) this.insertBefore(item, ref)
+        return child
+      }
+      const index = this.childNodes.indexOf(ref)
+      if (index === -1) return this.appendChild(child)
+      this.childNodes.splice(index, 0, child)
+      const refChildren = this.children.indexOf(ref)
+      this.children.splice(refChildren === -1 ? this.children.length : refChildren, 0, child)
+      child.parentElement = this
+      child.parentNode = this
+      return child
+    },
     querySelectorAll(selector) {
       const result = []
       const visit = (node) => {
         for (const child of node.childNodes || []) {
+          if (!child || child.nodeType !== 1) continue // 真 DOM 的 querySelectorAll 会跳过文本节点
           if (selector === 'button' && child.tagName === 'BUTTON') result.push(child)
           if (selector === '[role="menuitem"]' && child.getAttribute('role') === 'menuitem') result.push(child)
           if (selector === '.dsh-am-workspace-item' && child.className.includes('dsh-am-workspace-item')) result.push(child)
@@ -70,6 +85,7 @@ const registrations = []
 const effects = []
 const injected = []
 const hostCalls = []
+let sessionRefreshes = 0
 
 global.window = {
   __ModuleLoader__: { load(mod) { global.loaded = mod } },
@@ -107,7 +123,10 @@ const snapshots = {
   workspaces: { items: [{ workspaceId: 'w1', path: 'E:\\Work\\workspace-project', sessionIds: ['s1'] }] },
 }
 const ctx = {
-  get(name) { return snapshots[name] ? { list: { getSnapshot: () => snapshots[name] } } : undefined },
+  get(name) {
+    if (name === 'sessions') return { list: { getSnapshot: () => snapshots.sessions }, refresh() { sessionRefreshes += 1 } }
+    return snapshots[name] ? { list: { getSnapshot: () => snapshots[name] } } : undefined
+  },
   slots: {
     inject(name, callback) { injected.push(name); const result = callback(); if (typeof result === 'function') effects.push(result) },
     register(options, render) { registrations.push({ options, render }); return () => {} },
@@ -115,13 +134,16 @@ const ctx = {
 }
 exports.apply(ctx)
 
-test('两个会话目录操作分别注册到官方插槽', () => {
-  assert.equal(injected.filter((name) => name === 'sidebar.workspaces.session.menu.item').length, 2)
+test('三个会话操作分别注册到官方插槽', () => {
+  assert.equal(injected.filter((name) => name === 'sidebar.workspaces.session.menu.item').length, 3)
 })
 
-test('恰好注册复制目录与打开位置，未伪造删除/固定/归档', () => {
-  assert.equal(registrations.length, 2)
-  assert.deepEqual(registrations.map((entry) => entry.options.id).sort(), ['dsh-agent-menu-copy-cwd', 'dsh-agent-menu-reveal-cwd'])
+test('注册复制目录、打开位置与删除会话三项', () => {
+  assert.equal(registrations.length, 3)
+  assert.deepEqual(
+    registrations.map((entry) => entry.options.id).sort(),
+    ['dsh-agent-menu-copy-cwd', 'dsh-agent-menu-delete-session', 'dsh-agent-menu-reveal-cwd'],
+  )
 })
 
 test('插件操作位于原生操作之后', () => {
@@ -129,15 +151,20 @@ test('插件操作位于原生操作之后', () => {
 })
 
 test('会话菜单项使用原生 MenuItemButton 且文案正确', () => {
+  const expected = {
+    'dsh-agent-menu-copy-cwd': '复制工作目录',
+    'dsh-agent-menu-reveal-cwd': '打开文件位置',
+    'dsh-agent-menu-delete-session': '删除会话',
+  }
   for (const entry of registrations) {
     const rendered = entry.render({ sessionId: 's1', useMenuOpenState: () => [true, () => {}] })
     assert.ok(rendered && rendered.type.name === 'MenuItemButton', entry.options.id + ' 使用原生 MenuItemButton')
-    assert.equal(rendered.children[0], entry.options.order === 460 ? '复制工作目录' : '打开文件位置')
+    assert.equal(rendered.children[0], expected[entry.options.id])
   }
 })
 
 test('复制目录与打开位置使用当前会话官方 cwd', async () => {
-  for (const entry of registrations) {
+  for (const entry of registrations.filter((e) => e.options.id !== 'dsh-agent-menu-delete-session')) {
     const rendered = entry.render({ sessionId: 's1', useMenuOpenState: () => [true, () => {}] })
     rendered.props.onSelect()
     await tick()
@@ -147,8 +174,34 @@ test('复制目录与打开位置使用当前会话官方 cwd', async () => {
 })
 
 test('会话没有可信 cwd 时不显示目录操作', () => {
-  const missing = registrations[0].render({ sessionId: 'unknown', useMenuOpenState: () => [true, () => {}] })
+  const copyEntry = registrations.find((e) => e.options.id === 'dsh-agent-menu-copy-cwd')
+  const missing = copyEntry.render({ sessionId: 'unknown', useMenuOpenState: () => [true, () => {}] })
   assert.equal(missing, null)
+})
+
+test('删除会话不依赖 cwd，点击走宿主 session-delete 路由并刷新列表', async () => {
+  const deleteEntry = registrations.find((e) => e.options.id === 'dsh-agent-menu-delete-session')
+  const rendered = deleteEntry.render({ sessionId: 'unknown', useMenuOpenState: () => [true, () => {}] })
+  assert.ok(rendered && rendered.type.name === 'MenuItemButton', '没有 cwd 也显示删除项')
+  rendered.props.onSelect()
+  await tick()
+  assert.ok(hostCalls.some((call) => call.url === '/agent-menu/session-delete' && call.body.sessionId === 'unknown'), '删除走本插件宿主路由')
+  assert.equal(sessionRefreshes, 1, '删除成功后刷新 sessions 快照')
+})
+
+test('会话菜单打开后「复制 Session ID」被替换为「复制会话 ID」', async () => {
+  const menu = element('div', { rect: { left: 180, top: 20, right: 380, bottom: 100 } })
+  menu.setAttribute('role', 'menu')
+  const item = element('button', { text: '复制 Session ID', attrs: { role: 'menuitem' } })
+  const textNode = { nodeType: 3, nodeValue: '复制 Session ID', textContent: '复制 Session ID' }
+  item.childNodes.push(textNode)
+  menu.appendChild(item)
+  nativeMenu = menu
+  const deleteEntry = registrations.find((e) => e.options.id === 'dsh-agent-menu-delete-session')
+  deleteEntry.render({ sessionId: 's1', useMenuOpenState: () => [true, () => {}] })
+  await tick()
+  nativeMenu = null
+  assert.equal(textNode.nodeValue, '复制会话 ID', '文本节点被就地替换（保留图标与结构）')
 })
 
 const workspace = element('div', { dataset: { rowKey: 'workspace:w1' }, rect: { left: 10, top: 10, right: 210, bottom: 40 } })
@@ -168,7 +221,7 @@ workspace.appendChild(newButton)
 
 // 工作区这条链是「右键 → 原生菜单弹出 → 我们追加」的时序，一个 test 里连着走完，
 // 拆成多个 test 会变成互相依赖执行顺序的假通过。
-test('工作区菜单：只触发原生菜单、保留原生项、追加恰好三项、新建会话走原生按钮', async () => {
+test('工作区菜单：新建会话置顶、三项插入锚定、删除工作区沉底', async () => {
   let prevented = false
   let stoppedImmediately = false
   fireContextMenu({
@@ -183,6 +236,11 @@ test('工作区菜单：只触发原生菜单、保留原生项、追加恰好�
   assert.equal(workspaceMenuClicks, 1, '只唤起了一次原生菜单')
 
   assert.equal(nativeMenu.childNodes.length, 5, '原生两项 + 追加三项')
+  assert.deepEqual(
+    nativeMenu.childNodes.map((item) => item.textContent),
+    ['新建会话', '重命名', '复制工作目录', '打开文件位置', '删除工作区'],
+    '用户要求的顺序：新建会话最上、删除工作区最下',
+  )
   const additions = nativeMenu.querySelectorAll('.dsh-am-workspace-item')
   assert.deepEqual(additions.map((item) => item.textContent), ['新建会话', '复制工作目录', '打开文件位置'])
 

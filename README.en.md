@@ -22,12 +22,12 @@ A restrained right-click menu for the DeepSeek Harness Web UI. It provides clipb
 | Conversation image | Copy image / Save as…; local images also support Reveal / Open |
 | Composer | Standard Cut / Copy / Paste / Undo / Redo / Select all actions |
 | Composer image | Image actions and Remove from composer |
-| Workspace row | Native Rename/Delete, plus New session / Copy directory / Reveal |
-| Session row | Native pin/rename/fork/archive/copy-session-ID, plus Copy directory / Reveal |
+| Workspace row | Native Rename/Delete kept; New session inserted first, Copy directory / Reveal inserted before Delete (Delete sinks to the bottom) |
+| Session row | Native pin/rename/fork/archive/copy-session-ID (label localized in place), plus Copy directory / Reveal / Delete session |
 | Anything else | Leave the native menu alone |
 
 - Workspace paths come from the official `workspaces.list` snapshot. Session paths come from that session's `cwd`; paths are never guessed.
-- **No session Delete action is offered.** DSH exposes no public session-deletion API, and Archive is not Delete. Workspace deletion remains the official dialog, which moves its sessions to Ungrouped.
+- **Delete session** is implemented by this plugin's host route `POST /agent-menu/session-delete`: it removes the session's log directory under `~/.dsh/sessions` and clears its archive flag. DSH exposes no public session-deletion API, so this is the plugin-side equivalent; sessions currently open in the app are refused (409) — close or restart, then delete. Workspace deletion remains the official dialog, which moves its sessions to Ungrouped.
 - Session additions use the official `sidebar.workspaces.session.menu.item` slot and native `MenuItemButton`. Workspace menus have no corresponding slot, so additions are made only after identifying the actual native workspace menu. New session invokes the existing native row button.
 - Relative file operations are hidden when no authoritative session directory is available. `blob:` / `data:` images use host byte routes rather than invented local paths.
 - Custom menus follow the active theme, with a 12px card radius, 6px item radius, subtle separators and a light shadow. Native sidebar menus keep DSH's own styling.
@@ -50,7 +50,7 @@ From a local checkout or tarball, use `dsh plugin --profile desktop add <this di
 ## Development checks
 
 ```bash
-node --test tests/*.test.mjs          # 35 tests, no dependencies
+node --test tests/*.test.mjs          # 37 tests, no dependencies
 node scripts/check-manifest.mjs       # manifest, exports, icon, docs
 ```
 
