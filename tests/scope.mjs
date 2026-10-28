@@ -1,6 +1,6 @@
-// dsh-agent-menu 0.5.0 生效范围测试（node tests/scope.mjs）。
-// 只在对话消息（[data-chat-turn]）和可编辑框里接管右键；消息里只认图片、点在选区上的选中文字、
-// 链接、文件路径；选区菜单只有「复制」，任何地方都不出 AI 动作。
+// dsh-agent-menu 0.7.0 生效范围测试（node tests/scope.mjs）。
+// 只在对话消息和可编辑框里接管右键；选区、代码块、链接、文件和图片只提供
+// 当前精简菜单，任何场景都不出现 AI 动作。
 
 import { readFileSync } from 'node:fs'
 
@@ -90,12 +90,13 @@ async function rightClick(name, target, sel, expect) {
     check(got === null && prevented === false, '不接管，也不拦原生菜单')
   } else {
     check(got !== null && prevented === true, '弹出本插件菜单')
+    if (expect.exact) check(JSON.stringify(got) === JSON.stringify(expect.exact), '菜单项精确匹配：' + expect.exact.join(' / '))
     for (const label of expect.has || []) check(got !== null && got.includes(label), '含「' + label + '」')
     for (const label of expect.not || []) check(got === null || !got.includes(label), '不含「' + label + '」')
   }
 }
 
-const AI = ['发送给 AI', '引用到输入框', '让 AI 解释这段内容', '总结选区', '引用此段到输入框', '让 AI 解释此段', '复制此段', '复制代码']
+const AI = ['发送给 AI', '引用到输入框', '让 AI 解释这段内容', '总结选区', '引用此段到输入框', '让 AI 解释此段', '复制此段']
 const hitRect = [{ left: 90, top: 90, right: 120, bottom: 110 }]
 const missRect = [{ left: 400, top: 400, right: 500, bottom: 420 }]
 
@@ -103,12 +104,12 @@ await rightClick('消息里选中文字，点在选区上', inChat('p', { text: 
 await rightClick('消息里选中文字，但点在选区外的普通段落', inChat('p', { text: '另一段' }), { text: '选中的字', rects: missRect }, null)
 await rightClick('消息里没选中文字的段落', inChat('p', { text: '普通段落' }), { text: '', rects: [] }, null)
 await rightClick('消息里的表格单元格', inChat('td', { text: '表格内容' }), { text: '', rects: [] }, null)
-await rightClick('消息里的代码块（没选中）', inChat('pre', { text: 'const a = 1' }), { text: '', rects: [] }, null)
+await rightClick('消息里的代码块（没选中）', inChat('pre', { text: 'const a = 1' }), { text: '', rects: [] }, { exact: ['复制代码'], not: AI })
 await rightClick('代码块里选中文字', inChat('pre', { text: 'const a = 1' }), { text: 'const', rects: hitRect }, { has: ['复制'], not: AI })
 await rightClick('对话区外（设置页）有选中文字', outside('p', { text: '设置说明' }), { text: '设置说明', rects: hitRect }, null)
 await rightClick('对话区外的普通文字', outside('span', { text: '工具栏' }), { text: '', rects: [] }, null)
-await rightClick('消息里的链接', inChat('a', { text: '文档', attrs: { href: 'https://example.com/doc' } }), { text: '', rects: [] }, { has: ['复制链接地址', '在浏览器中打开'], not: AI })
-await rightClick('消息里的文件路径', inChat('code', { text: 'src/main.ts' }), { text: '', rects: [] }, { has: ['复制路径', '打开文件位置', '用默认应用打开'], not: AI })
+await rightClick('消息里的链接', inChat('a', { text: '文档', attrs: { href: 'https://example.com/doc' } }), { text: '', rects: [] }, { exact: ['复制链接地址', '复制为 Markdown 链接', '在浏览器中打开'], not: AI })
+await rightClick('消息里的文件路径', inChat('code', { text: 'src/main.ts' }), { text: '', rects: [] }, { exact: ['复制路径', '打开文件位置', '用默认应用打开'], not: ['复制相对路径', '复制本地文件链接', '复制文件名', ...AI] })
 await rightClick('输入框（不在对话区里）', outside('div', { editable: true, text: '草稿' }), { text: '', rects: [] }, { has: ['粘贴', '全选'], not: AI })
 await rightClick('输入框里选中文字', outside('textarea', { text: '草稿' }), { text: '草', rects: hitRect }, { has: ['剪切', '复制', '粘贴'], not: AI })
 

@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Agent Menu",
-    "description": "Agent-grade right-click menu: quote selections into the composer, fire prompt templates, and native clipboard/save actions."
+    "description": "Restrained context menus for copying selections, code, links, files and images, plus real workspace/session directory actions."
   }
 }
