@@ -235,6 +235,20 @@ check(
 );
 check(!existsSync(join(root, "README.zh.md")), "README.zh.md is retired; the Chinese page is README.md");
 
+// Market badge: two separate assets, no bare badge-listed.svg (that 404s).
+// Checked statically so the check still runs offline in CI.
+check(/badge-listed-zh\.svg/.test(readmePrimary), "README.md must use the Chinese market badge (badge-listed-zh.svg)");
+check(
+  /badge-listed-en\.svg/.test(readText("README.en.md")),
+  "README.en.md must use the English market badge (badge-listed-en.svg)",
+);
+for (const readme of ["README.md", "README.en.md"]) {
+  check(
+    !/badge-listed\.svg/.test(readText(readme)),
+    `${readme} references badge-listed.svg, which does not exist upstream`,
+  );
+}
+
 if (failures.length > 0) {
   console.error(`manifest check failed (${failures.length}):`);
   for (const failure of failures) console.error(`  - ${failure}`);

@@ -82,10 +82,12 @@ npm publish
 
 市场是拉的模式：GitHub topic 扫描 + npm 版本查询。发版只需要「README 在 main 上 + npm 已发」。
 
-- 收录 issue（`2BingLing/dsh-market` #294）是一次性入口，之后与日常更新无关。
+- 收录 issue（`2BingLing/dsh-market` #294）是一次性入口，之后与日常更新无关。还没收录时也可以走 [issue 模板](https://github.com/2BingLing/dsh-market/issues/new?template=submit_plugin.md) 主动投一次。
 - issue 正文只影响作者自述、中文简介、安装命令；改版本号、测试数写进正文没有作用。
 - **安装命令必须放在 `bash` 或 `sh` 代码块里**（或以 `$` 开头的行），表格里的命令不会被解析。
 - 本仓库 README 的安装命令现在写作 `dsh plugin --profile desktop add github:xsllo425/dsh-agent-menu`，放在 `bash` 代码块内，符合要求。
+- 查收录状态别看网页，读索引：`curl -s https://raw.githubusercontent.com/2BingLing/dsh-market/master/data/plugins-lite.json`，按 `fullName` 找，「我的插件」= `grep xsllo425`。
+- **徽章两版不同文件，别抄错**：中文页 `assets/readme/badge-listed-zh.svg`，英文页 `assets/readme/badge-listed-en.svg`。没有不带后缀的 `badge-listed.svg`（会 404）。链接目标统一 `https://dsh.market/`；`dsh.market/plugins/<owner>/<repo>` 这种详情页路径不保证存在，别自己拼。
 
 ## 语言：默认中文
 

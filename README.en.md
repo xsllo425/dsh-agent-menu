@@ -6,7 +6,7 @@
 
 [![ci](https://github.com/xsllo425/dsh-agent-menu/actions/workflows/ci.yml/badge.svg)](https://github.com/xsllo425/dsh-agent-menu/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![DSH Market](https://raw.githubusercontent.com/2BingLing/dsh-market/master/assets/readme/badge-listed.svg)](https://dsh.market/)
+[![DSH Market](https://raw.githubusercontent.com/2BingLing/dsh-market/master/assets/readme/badge-listed-en.svg)](https://dsh.market/)
 [![DeepSeek Harness plugin](https://img.shields.io/badge/DeepSeek%20Harness-plugin-4d6bfe.svg)](https://github.com/topics/dsh-plugin)
 
 A restrained right-click menu for the DeepSeek Harness Web UI. It provides clipboard, file and native desktop actions without quoting content into the composer, sending AI messages or applying prompt templates.
