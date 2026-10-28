@@ -58,6 +58,21 @@ node scripts/check-manifest.mjs       # 清单、导出、图标、文档一致�
 
 这些测试覆盖 DOM/服务桩、原生插槽注册和宿主路由；`tests/image-bytes.test.mjs` 会实际写入并读取系统剪贴板（仅 Windows，其他平台跳过）。它们不能代替真实 DSH 界面的浏览器验收。开发与边界记录见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。发版流程见 [docs/RELEASE.md](docs/RELEASE.md)。
 
+## 致谢
+
+这个插件是在多个 AI 助手的协助下写成的。名单按本机会话记录整理（DSH、Claude Code、Codex 的会话里，实际改过本仓库文件的模型），按参与先后与多少排列：
+
+- GLM（0.1.0 初版）
+- MiniMax M3.1 Flash Preview
+- StepFun Step-5 Preview
+- Claude Sonnet 5.5
+- Gemini 3.8 Flash
+- DeepSeek V4.1 Flash
+- Claude Opus 5.5
+- DeepSeek Flash
+- SCNet-Max
+- Kimi K3.1 Pro
+
 ## 许可
 
 MIT，见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。

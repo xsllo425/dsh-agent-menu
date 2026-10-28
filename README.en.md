@@ -58,6 +58,21 @@ node scripts/check-manifest.mjs       # manifest, exports, icon, docs
 
 These cover DOM/service stubs, native slot registrations and host routes. `tests/image-bytes.test.mjs` writes and reads the real system clipboard (Windows only; skipped elsewhere). They do not replace browser acceptance in a live DSH UI. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for implementation boundaries, [docs/RELEASE.md](docs/RELEASE.md) for the release checklist.
 
+## Acknowledgments
+
+This plugin was written with help from several AI assistants. The list comes from the local session logs (DSH, Claude Code and Codex sessions in which a model actually edited this repository), ordered by when and how much each took part:
+
+- GLM (initial 0.1.0)
+- MiniMax M3.1 Flash Preview
+- StepFun Step-5 Preview
+- Claude Sonnet 5.5
+- Gemini 3.8 Flash
+- DeepSeek V4.1 Flash
+- Claude Opus 5.5
+- DeepSeek Flash
+- SCNet-Max
+- Kimi K3.1 Pro
+
 ## License
 
 MIT; see [LICENSE](LICENSE) and [NOTICE](NOTICE).
