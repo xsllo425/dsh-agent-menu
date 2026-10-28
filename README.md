@@ -28,7 +28,7 @@
 
 - **工作区目录**来自官方 `workspaces.list` 快照；**会话目录**来自对应会话的 `cwd`，不会猜测路径。
 - **删除会话**由本插件宿主路由 `POST /agent-menu/session-delete` 实现：删除 `~/.dsh/sessions` 下该会话的日志目录并清除归档标记。DSH 没有公开的会话删除接口，这是插件侧的等价做法；正在本应用打开的会话会被拒绝（409），等会话关闭或重启后再删。工作区删除仍使用官方对话框，会话会移到未分组。
-- 工作区「新建会话」调用同一行已有的原生按钮；会话目录操作注册到官方 `sidebar.workspaces.session.menu.item` 插槽。工作区原生菜单目前没有对应插槽，追加项仅在确认是工作区原生菜单时出现。
+- 工作区「新建会话」调用同一行已有的原生按钮；会话目录操作注册到官方 `sidebar.workspaces.session.menu.item` 插槽，若该插槽在当前环境不渲染插件项，右键会话行时会就地 DOM 兜底追加「删除会话」并汉化复制项（两条路径不叠加）。工作区原生菜单目前没有对应插槽，追加项仅在确认是工作区原生菜单时出现。
 - 相对文件路径必须能取得当前会话目录才会显示文件操作。图片的 `blob:` / `data:` 地址通过宿主字节路由复制或另存，不伪造本地路径。
 - 菜单使用宿主主题色，卡片圆角 12px、菜单项圆角 6px，无图标、弱分隔线与轻阴影。工作区和会话的原生菜单保留 DSH 自身样式。
 
@@ -50,7 +50,7 @@ dsh plugin --profile desktop add github:xsllo425/dsh-agent-menu
 ## 维护与验证
 
 ```bash
-node --test tests/*.test.mjs          # 37 项，无任何依赖
+node --test tests/*.test.mjs          # 40 项，无任何依赖
 node scripts/check-manifest.mjs       # 清单、导出、图标、文档一致性
 ```
 

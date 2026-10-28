@@ -17,10 +17,20 @@ function element(tag, options = {}) {
     parentElement: options.parent || null,
     parentNode: options.parent || null,
     style: {},
-    textContent: options.text || '',
-    innerText: options.text || '',
     className: '',
     id: '',
+    // textContent 按真 DOM 语义聚合子节点：有子节点时反映文本节点的 nodeValue 变化，
+    // 否则回落到直接赋的字符串（workspaceButton 就是直接赋值）。
+    get textContent() {
+      if (this.childNodes.length > 0) {
+        return this.childNodes.map((n) => (n.nodeType === 3 ? String(n.nodeValue) : n.textContent)).join('')
+      }
+      return this._text || ''
+    },
+    set textContent(value) { this._text = value == null ? '' : String(value) },
+    get innerText() { return this.textContent },
+    set innerText(value) { this.textContent = value },
+    _text: options.text || '',
     _attrs: { ...(options.attrs || {}) },
     _listeners: {},
     setAttribute(name, value) { this._attrs[name] = String(value) },
@@ -257,4 +267,61 @@ test('非工作区原生菜单不会被误加目录操作', async () => {
   fireContextMenu({ target: workspace, preventDefault() {}, stopImmediatePropagation() {}, stopPropagation() {} })
   await tick()
   assert.equal(unrelated.querySelectorAll('.dsh-am-workspace-item').length, 0)
+})
+
+// 真宿主把菜单项包在 group 容器里，直接 menu.insertBefore(node, 嵌套ref) 会抛
+// NotFoundError——0.8.2 首版就栽在这，整条追加链失效。这个桩结构专门复刻该形态。
+test('菜单项包在 group 容器里时仍按精确顺序插入', async () => {
+  const originalClick = menuButton.click
+  menuButton.click = () => {
+    const nested = element('div', { rect: { left: 180, top: 20, right: 380, bottom: 100 } })
+    nested.setAttribute('role', 'menu')
+    const group = element('div')
+    group.appendChild(element('button', { text: '重命名', attrs: { role: 'menuitem' } }))
+    group.appendChild(element('button', { text: '删除工作区', attrs: { role: 'menuitem' } }))
+    nested.appendChild(group)
+    nativeMenu = nested
+  }
+  fireContextMenu({ target: workspace, preventDefault() {}, stopImmediatePropagation() {}, stopPropagation() {} })
+  await tick()
+  menuButton.click = originalClick
+  assert.deepEqual(
+    nativeMenu.querySelectorAll('[role="menuitem"]').map((item) => item.textContent),
+    ['新建会话', '重命名', '复制工作目录', '打开文件位置', '删除工作区'],
+  )
+})
+
+// ── 会话行右键：插槽项缺席时的 DOM 兜底（删除会话 + 汉化） ──
+const sessionRow = element('div', { dataset: { rowKey: 'session:s1' }, rect: { left: 10, top: 50, right: 210, bottom: 80 } })
+sessionRow.appendChild(element('button', {
+  attrs: { 'aria-label': '会话“Demo”的操作' },
+  onClick() {
+    nativeMenu = element('div', { rect: { left: 180, top: 60, right: 380, bottom: 220 } })
+    nativeMenu.setAttribute('role', 'menu')
+    for (const label of ['置顶会话', '重命名', '分叉会话', '归档会话']) {
+      nativeMenu.appendChild(element('button', { text: label, attrs: { role: 'menuitem' } }))
+    }
+    const copyId = element('button', { text: '复制 Session ID', attrs: { role: 'menuitem' } })
+    copyId.childNodes.push({ nodeType: 3, nodeValue: '复制 Session ID', textContent: '复制 Session ID' })
+    nativeMenu.appendChild(copyId)
+  },
+}))
+
+test('会话菜单兜底：插槽项缺席时追加删除会话并汉化复制项', async () => {
+  fireContextMenu({ target: sessionRow, preventDefault() {}, stopImmediatePropagation() {}, stopPropagation() {} })
+  await tick()
+  await tick()
+  const labels = nativeMenu.querySelectorAll('[role="menuitem"]').map((item) => item.textContent)
+  assert.deepEqual(labels, ['置顶会话', '重命名', '分叉会话', '归档会话', '复制会话 ID', '删除会话'])
+  const deleteItem = nativeMenu.querySelectorAll('.dsh-am-workspace-item')[0]
+  deleteItem.click()
+  await tick()
+  assert.ok(hostCalls.some((call) => call.url === '/agent-menu/session-delete' && call.body.sessionId === 's1'), '兜底删除项走宿主路由')
+})
+
+test('会话菜单第二次打开不叠加兜底项', async () => {
+  fireContextMenu({ target: sessionRow, preventDefault() {}, stopImmediatePropagation() {}, stopPropagation() {} })
+  await tick()
+  await tick()
+  assert.equal(nativeMenu.querySelectorAll('.dsh-am-workspace-item').length, 1, '删除项仍只有一条')
 })

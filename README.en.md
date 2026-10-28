@@ -28,7 +28,7 @@ A restrained right-click menu for the DeepSeek Harness Web UI. It provides clipb
 
 - Workspace paths come from the official `workspaces.list` snapshot. Session paths come from that session's `cwd`; paths are never guessed.
 - **Delete session** is implemented by this plugin's host route `POST /agent-menu/session-delete`: it removes the session's log directory under `~/.dsh/sessions` and clears its archive flag. DSH exposes no public session-deletion API, so this is the plugin-side equivalent; sessions currently open in the app are refused (409) — close or restart, then delete. Workspace deletion remains the official dialog, which moves its sessions to Ungrouped.
-- Session additions use the official `sidebar.workspaces.session.menu.item` slot and native `MenuItemButton`. Workspace menus have no corresponding slot, so additions are made only after identifying the actual native workspace menu. New session invokes the existing native row button.
+- Session additions use the official `sidebar.workspaces.session.menu.item` slot and native `MenuItemButton`. If that slot does not render plugin items in the current environment, right-clicking a session row falls back to an in-place DOM append of "Delete session" plus the localized copy item (the two paths never stack). Workspace menus have no corresponding slot, so additions are made only after identifying the actual native workspace menu. New session invokes the existing native row button.
 - Relative file operations are hidden when no authoritative session directory is available. `blob:` / `data:` images use host byte routes rather than invented local paths.
 - Custom menus follow the active theme, with a 12px card radius, 6px item radius, subtle separators and a light shadow. Native sidebar menus keep DSH's own styling.
 
@@ -50,7 +50,7 @@ From a local checkout or tarball, use `dsh plugin --profile desktop add <this di
 ## Development checks
 
 ```bash
-node --test tests/*.test.mjs          # 37 tests, no dependencies
+node --test tests/*.test.mjs          # 40 tests, no dependencies
 node scripts/check-manifest.mjs       # manifest, exports, icon, docs
 ```
 
