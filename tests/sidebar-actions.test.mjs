@@ -20,7 +20,7 @@ function element(tag, options = {}) {
     className: '',
     id: '',
     // textContent 按真 DOM 语义聚合子节点：有子节点时反映文本节点的 nodeValue 变化，
-    // 否则回落到直接赋的字符串（workspaceButton 就是直接赋值）。
+    // 否则回落到直接赋的字符串 / innerHTML 里的文字。
     get textContent() {
       if (this.childNodes.length > 0) {
         return this.childNodes.map((n) => (n.nodeType === 3 ? String(n.nodeValue) : n.textContent)).join('')
@@ -28,6 +28,8 @@ function element(tag, options = {}) {
       return this._text || ''
     },
     set textContent(value) { this._text = value == null ? '' : String(value) },
+    // 桩不解析 HTML：innerHTML 只留标签外的文字（图标 svg 无文字，label span 的文字即 textContent）。
+    set innerHTML(html) { this._html = String(html); this._text = String(html).replace(/<[^>]*>/g, '') },
     get innerText() { return this.textContent },
     set innerText(value) { this.textContent = value },
     _text: options.text || '',
@@ -253,6 +255,9 @@ test('工作区菜单：新建会话置顶、三项插入锚定、删除工作�
   )
   const additions = nativeMenu.querySelectorAll('.dsh-am-workspace-item')
   assert.deepEqual(additions.map((item) => item.textContent), ['新建会话', '复制工作目录', '打开文件位置'])
+  for (const item of additions) {
+    assert.ok(String(item._html || '').includes('<svg'), `追加项必须带图标：${item.textContent}`)
+  }
 
   additions[0].click()
   assert.equal(newSessionClicks, 1, '新建会话调用同一行已有原生按钮')
@@ -314,6 +319,8 @@ test('会话菜单兜底：插槽项缺席时追加删除会话并汉化复制�
   const labels = nativeMenu.querySelectorAll('[role="menuitem"]').map((item) => item.textContent)
   assert.deepEqual(labels, ['置顶会话', '重命名', '分叉会话', '归档会话', '复制会话 ID', '删除会话'])
   const deleteItem = nativeMenu.querySelectorAll('.dsh-am-workspace-item')[0]
+  assert.ok(String(deleteItem._html || '').includes('<svg'), '兜底删除项带垃圾桶图标')
+  assert.ok(String(deleteItem.className || '').includes('dsh-am-danger'), '兜底删除项标红')
   deleteItem.click()
   await tick()
   assert.ok(hostCalls.some((call) => call.url === '/agent-menu/session-delete' && call.body.sessionId === 's1'), '兜底删除项走宿主路由')
