@@ -17,3 +17,4 @@ node_modules/
 # 系统杂物
 .DS_Store
 Thumbs.db
+.dsh/
