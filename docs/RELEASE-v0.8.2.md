@@ -22,5 +22,5 @@ dsh plugin --profile desktop add github:xsllo425/dsh-agent-menu#v0.8.2
 
 ## 验证
 
-- `npm run verify`：语法检查、42 项测试、清单自检全部通过。
+- `npm run verify`：语法检查、43 项测试、清单自检全部通过。
 - 界面行为（重排顺序、汉化替换、删除后侧栏刷新）需在 DSH 重启后人工确认。

@@ -71,6 +71,7 @@ function element(tag, options = {}) {
           if (!child || child.nodeType !== 1) continue // 真 DOM 的 querySelectorAll 会跳过文本节点
           if (selector === 'button' && child.tagName === 'BUTTON') result.push(child)
           if (selector === '[role="menuitem"]' && child.getAttribute('role') === 'menuitem') result.push(child)
+          if (selector === 'svg' && child.tagName === 'SVG') result.push(child)
           if (selector === '.dsh-am-workspace-item' && child.className.includes('dsh-am-workspace-item')) result.push(child)
           visit(child)
         }
@@ -107,6 +108,7 @@ global.window = {
   clearTimeout,
   location: { href: 'http://localhost/' },
   getSelection() { return { toString: () => '' } },
+  getComputedStyle: (el) => el._computed || {},
 }
 global.document = {
   head: element('head'),
@@ -345,6 +347,32 @@ function makeSessionMenu() {
   menu.appendChild(copyId)
   return menu
 }
+
+test('追加项照抄原生项的几何：内边距、字号、行高对齐', async () => {
+  const originalClick = menuButton.click
+  menuButton.click = () => {
+    nativeMenu = element('div', { rect: { left: 200, top: 30, right: 400, bottom: 120 } })
+    nativeMenu.setAttribute('role', 'menu')
+    const rename = element('button', { attrs: { role: 'menuitem' } })
+    rename.childNodes.push({ nodeType: 3, nodeValue: '重命名', textContent: '重命名' })
+    rename.appendChild(element('svg', { rect: { left: 210, top: 36, right: 224, bottom: 50 } }))
+    rename._computed = { padding: '6px 12px', fontSize: '13px', lineHeight: '20px', gap: '8px' }
+    nativeMenu.appendChild(rename)
+    const del = element('button', { attrs: { role: 'menuitem' } })
+    del.childNodes.push({ nodeType: 3, nodeValue: '删除工作区', textContent: '删除工作区' })
+    nativeMenu.appendChild(del)
+  }
+  fireContextMenu({ target: workspace, preventDefault() {}, stopImmediatePropagation() {}, stopPropagation() {} })
+  await tick()
+  menuButton.click = originalClick
+  const additions = nativeMenu.querySelectorAll('.dsh-am-workspace-item')
+  assert.equal(additions.length, 3)
+  for (const item of additions) {
+    assert.equal(item.style.padding, '6px 12px', '内边距必须与原生项一致')
+    assert.equal(item.style.fontSize, '13px')
+    assert.equal(item.style.lineHeight, '20px')
+  }
+})
 
 test('同步挂载的菜单在右键返回前就已补好（不等下一帧）', () => {
   const row = element('div', { dataset: { rowKey: 'session:s1' }, rect: { left: 10, top: 50, right: 210, bottom: 80 } })
